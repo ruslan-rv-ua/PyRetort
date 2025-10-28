@@ -22,9 +22,17 @@ requires = ["uv_build>=0.9.4,<0.10.0"]
 build-backend = "uv_build"
 
 [tool.pyretort]
+# Path to the project source directory relative to the project root
 project_source_subdir = "src/simple_rss"
+# Name of the main Python file to execute (e.g., main.py, app.py)
 main_file = "main.py"
+# Whether to install the project as a Python package during build
 install_as_package = true
-python_version = "3.13"
+# Python version to use for the bundled distribution
+python_version = "3.13.9"
+# Python architecture to use (AMD64, x86, ARM64)
 python_architecture = "amd64"
+# Whether to show the console window when running the application
 show_console_window = false
+# Whether to create a ZIP archive of the distribution
+create_dist_zip_file = true

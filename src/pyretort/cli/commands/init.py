@@ -62,14 +62,49 @@ def _update_pyproject_toml(pyproject_toml_path: Path) -> None:
     project_name = str(pyproject_data.get("project", {}).get("name", ""))
     source_subdir = _find_project_source_subdir(project_path, project_name)
     print(f"{source_subdir=}")
+
+    pyretort_config.add(
+        tomlkit.comment(
+            "Path to the project source directory relative to the project root"
+        )
+    )
     pyretort_config["project_source_subdir"] = source_subdir
+
+    pyretort_config.add(
+        tomlkit.comment(
+            "Name of the main Python file to execute (e.g., main.py, app.py)"
+        )
+    )
     pyretort_config["main_file"] = _find_main_file(project_path / source_subdir)
+
+    pyretort_config.add(
+        tomlkit.comment(
+            "Whether to install the project as a Python package during build"
+        )
+    )
     pyretort_config["install_as_package"] = INSTALL_AS_PACKAGE_DEFAULT
 
+    pyretort_config.add(
+        tomlkit.comment("Python version to use for the bundled distribution")
+    )
     pyretort_config["python_version"] = _find_python_version()
+
+    pyretort_config.add(
+        tomlkit.comment("Python architecture to use (AMD64, x86, ARM64)")
+    )
     pyretort_config["python_architecture"] = _find_python_architecture()
 
+    pyretort_config.add(
+        tomlkit.comment(
+            "Whether to show the console window when running the application"
+        )
+    )
     pyretort_config["show_console_window"] = SHOW_CONSOLE_DEFAULT
+
+    pyretort_config.add(
+        tomlkit.comment("Whether to create a ZIP archive of the distribution")
+    )
+    pyretort_config["create_dist_zip_file"] = True
 
     tool_section["pyretort"] = pyretort_config
 
@@ -99,7 +134,7 @@ def _find_main_file(source_dir: Path) -> str | None:
 
 def _find_python_version() -> str:
     """Get the current Python version as a string."""
-    return f"{sys.version_info.major}.{sys.version_info.minor}"
+    return f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
 
 
 def _find_python_architecture() -> PythonArchitecture:
