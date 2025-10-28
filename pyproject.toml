@@ -55,5 +55,3 @@ markers = [
 [tool.uv.workspace]
 members = []
 
-[tool.uv.sources]
-depscanner = { git = "https://github.com/ruslan-rv-ua/depscanner.git" }

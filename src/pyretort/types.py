@@ -14,6 +14,57 @@ class PythonArchitecture(StrEnum):
     ARM64 = "arm64"
 
 
+class BuildBackend(StrEnum):
+    """All possible values for [build-system].build-backend in pyproject.toml"""
+
+    # setuptools
+    SETUPTOOLS = "setuptools.build_meta"
+    SETUPTOOLS_SCM = "setuptools.build_meta"  # with setuptools-scm plugin
+
+    # hatchling
+    HATCHLING = "hatchling.build"
+
+    # uv
+    UV = "uv"
+
+    # poetry
+    POETRY_CORE = "poetry.core.masonry.api"
+
+    # flit
+    FLIT_CORE = "flit_core.buildapi"
+
+    # PDM
+    PDM_BACKEND = "pdm.backend"
+    PDM_PEP517 = "pdm.pep517.api"  # legacy PDM backend
+
+    # meson-python
+    MESON_PYTHON = "mesonpy"
+
+    # scikit-build-core
+    SCIKIT_BUILD_CORE = "scikit_build_core.build"
+
+    # maturin (for Rust extensions)
+    MATURIN = "maturin"
+
+    # trampolim (for Java/JVM integration)
+    TRAMPOLIM = "trampolim"
+
+    # py-build-cmake
+    PY_BUILD_CMAKE = "py_build_cmake.build"
+
+    # enscons (SCons-based)
+    ENSCONS = "enscons.api"
+
+    # whey
+    WHEY = "whey"
+
+    # flit (legacy)
+    FLIT = "flit.buildapi"
+
+    # jupyter-packaging
+    JUPYTER_PACKAGING = "jupyter_packaging.build_api"
+
+
 class BuildConfig(BaseModel):
     # where the root of the project to be built is located
     project_dir_abs_path: Path
@@ -39,6 +90,9 @@ class BuildConfig(BaseModel):
 
     # python architecture to use for the build
     python_architecture: PythonArchitecture
+
+    # build backend to use for building the project
+    build_backend: BuildBackend
 
     # pydist directory, relative to build_output_dir
     pydist_rel_subdir_path: Path
@@ -151,6 +205,7 @@ class BuildConfig(BaseModel):
         # Get project metadata
         project = data.get("project", {})
         tool_pyretort = data.get("tool", {}).get("pyretort", {})
+        build_system = data.get("build-system", {})
 
         # Determine project directory (parent of pyproject.toml)
         project_dir = pyproject_path.parent.absolute()
@@ -173,6 +228,7 @@ class BuildConfig(BaseModel):
             "python_architecture": PythonArchitecture(
                 tool_pyretort.get("python_architecture")
             ),
+            "build_backend": BuildBackend(build_system.get("build-backend")),
             "pydist_rel_subdir_path": Path(tool_pyretort.get("pydist_dir")),
             "build_source_rel_subdir_path": Path(tool_pyretort.get("build_source_dir")),
             "exe_file_name": tool_pyretort.get("exe_file_name"),
