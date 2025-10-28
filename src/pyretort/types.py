@@ -120,6 +120,12 @@ class BuildConfig(BaseModel):
         major, minor = parts[0], parts[1]
         return f"{major}{minor}"
 
+    @computed_field
+    @property
+    def dist_name(self) -> str:
+        """Distribution name: 'my-app-0.1.0-amd64'."""
+        return f"{self.project_name_slug_dash}-{self.project_version}-{self.python_architecture}"
+
     @classmethod
     def from_pyproject_toml(cls, pyproject_path: Path | str) -> "BuildConfig":
         """
