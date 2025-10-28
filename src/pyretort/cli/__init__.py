@@ -5,7 +5,7 @@ import typer
 from pyretort.cli._output import echo
 
 # from pyretort.cli.commands.build import build_command
-# from pyretort.cli.commands.check import check_command
+from pyretort.cli.commands.check import check_command
 # from pyretort.cli.commands.clean import cleanup_command
 from pyretort.cli.commands.init import init_command
 from pyretort.cli.commands.version import version_command
@@ -49,7 +49,7 @@ def cli_entry(
 
 
 app.command(name="init")(init_command)
-# app.command(name="check")(check_command)
+app.command(name="check")(check_command)
 # app.command(name="build")(build_command)
 # app.command(name="cleanup")(cleanup_command)
 app.command(name="version")(version_command)

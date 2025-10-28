@@ -20,51 +20,15 @@ class BuildBackend(StrEnum):
     """All possible values for [build-system].build-backend in pyproject.toml"""
 
     # setuptools
-    SETUPTOOLS = "setuptools.build_meta"
-    SETUPTOOLS_SCM = "setuptools.build_meta"  # with setuptools-scm plugin
+    # TODO: implement setuptools support
+    # SETUPTOOLS = "setuptools.build_meta"
 
     # hatchling
+    # tODO: implement hatchling support
     HATCHLING = "hatchling.build"
 
     # uv
-    UV = "uv"
-
-    # poetry
-    POETRY_CORE = "poetry.core.masonry.api"
-
-    # flit
-    FLIT_CORE = "flit_core.buildapi"
-
-    # PDM
-    PDM_BACKEND = "pdm.backend"
-    PDM_PEP517 = "pdm.pep517.api"  # legacy PDM backend
-
-    # meson-python
-    MESON_PYTHON = "mesonpy"
-
-    # scikit-build-core
-    SCIKIT_BUILD_CORE = "scikit_build_core.build"
-
-    # maturin (for Rust extensions)
-    MATURIN = "maturin"
-
-    # trampolim (for Java/JVM integration)
-    TRAMPOLIM = "trampolim"
-
-    # py-build-cmake
-    PY_BUILD_CMAKE = "py_build_cmake.build"
-
-    # enscons (SCons-based)
-    ENSCONS = "enscons.api"
-
-    # whey
-    WHEY = "whey"
-
-    # flit (legacy)
-    FLIT = "flit.buildapi"
-
-    # jupyter-packaging
-    JUPYTER_PACKAGING = "jupyter_packaging.build_api"
+    UV = "uv_build"
 
 
 class BuildConfig(BaseModel):
