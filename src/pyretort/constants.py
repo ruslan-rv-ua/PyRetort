@@ -1,8 +1,11 @@
 # whether to show spawned process consoles by default
 SHOW_CONSOLE_DEFAULT = False
 
+# whether to install the project as a package by default
+INSTALL_AS_PACKAGE_DEFAULT = True
+
 # Default directory name where built distributions/artifacts are placed
-PYDIST_DIR_DEFAULT = "pydist"  
+PYDIST_DIR_DEFAULT = "pydist"
 
 # cache directory for downloaded packages/files
 DOWNLOAD_CACHE_DIR_DEFAULT = "downloads"

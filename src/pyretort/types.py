@@ -1,9 +1,11 @@
 import tomllib
 from enum import StrEnum
+from hashlib import sha256
 from pathlib import Path
 
 from packaging.version import Version
 from pydantic import BaseModel, computed_field, field_validator
+from slugify import slugify
 
 MIN_PYTHON_VERSION = "3.11"
 
@@ -66,6 +68,9 @@ class BuildBackend(StrEnum):
 
 
 class BuildConfig(BaseModel):
+    # build hash based on python version, architecture, dependencies
+    build_hash: str
+
     # where the root of the project to be built is located
     project_dir_abs_path: Path
 
@@ -94,49 +99,13 @@ class BuildConfig(BaseModel):
     # build backend to use for building the project
     build_backend: BuildBackend
 
-    # pydist directory, relative to build_output_dir
-    pydist_rel_subdir_path: Path
-
-    # build source directory, relative to build_output_dir
-    build_source_rel_subdir_path: Path
-
-    # exe file name e.g. "myapp.exe"
-    exe_file_name: str
-
     # icon file path relative to project_dir (optional)
     icon_file_rel_path: Path | None = None
 
     # show or hide console window when running the built application
     show_console_window: bool = False
 
-    # distribution zip file name e.g. "myapp-1.3.7.zip"
-    # if None, zip file will not be created
-    dist_zip_file_name: str
-
-    # download cache directory, relative to project_dir
-    download_cache_rel_dir_path: Path
-    # build output directory, relative to project_dir
-    build_output_rel_dir_path: Path
-    # distribution output directory, relative to project_dir
-    dist_output_rel_dir_path: Path
-
-    @computed_field
-    @property
-    def download_cache_abs_dir_path(self) -> Path:
-        """Absolute path to download cache directory."""
-        return self.project_dir_abs_path / self.download_cache_rel_dir_path
-
-    @computed_field
-    @property
-    def build_output_abs_dir_path(self) -> Path:
-        """Absolute path to build output directory."""
-        return self.project_dir_abs_path / self.build_output_rel_dir_path
-
-    @computed_field
-    @property
-    def dist_output_abs_dir_path(self) -> Path:
-        """Absolute path to distribution output directory."""
-        return self.project_dir_abs_path / self.dist_output_rel_dir_path
+    create_dist_zip_file: bool
 
     @field_validator("python_version")
     @classmethod
@@ -154,18 +123,6 @@ class BuildConfig(BaseModel):
 
     @computed_field
     @property
-    def project_name_slug_underscore(self) -> str:
-        """Slugify project name with underscores (lowercase)."""
-        return self.project_name.lower().replace(" ", "_").replace("-", "_")
-
-    @computed_field
-    @property
-    def project_name_slug_dash(self) -> str:
-        """Slugify project name with hyphens (lowercase)."""
-        return self.project_name.lower().replace(" ", "-").replace("_", "-")
-
-    @computed_field
-    @property
     def python_version_short(self) -> str:
         """Convert version '3.11.9' -> '311', '3.0.1' -> '30'."""
         parts = self.python_version.split(".")
@@ -173,6 +130,18 @@ class BuildConfig(BaseModel):
             return ""
         major, minor = parts[0], parts[1]
         return f"{major}{minor}"
+
+    @computed_field
+    @property
+    def project_name_slug_underscore(self) -> str:
+        """Slugify project name with underscores (lowercase)."""
+        return slugify(self.project_name, separator="_")
+
+    @computed_field
+    @property
+    def project_name_slug_dash(self) -> str:
+        """Slugify project name with hyphens (lowercase)."""
+        return slugify(self.project_name, separator="-")
 
     @computed_field
     @property
@@ -210,8 +179,22 @@ class BuildConfig(BaseModel):
         # Determine project directory (parent of pyproject.toml)
         project_dir = pyproject_path.parent.absolute()
 
+        # Extract dependencies from project configuration
+        dependencies = project.get("dependencies", [])
+
+        # Get python version and architecture for hash calculation
+        python_version = tool_pyretort.get("python_version")
+        python_architecture = PythonArchitecture(
+            tool_pyretort.get("python_architecture")
+        )
+
+        # Calculate build_hash based on python version, architecture, and dependencies
+        hash_data = f"{python_version}|{python_architecture.value}|{'|'.join(sorted(dependencies))}"
+        build_hash = sha256(hash_data.encode()).hexdigest()
+
         # Extract configuration with defaults
         config_data = {
+            "build_hash": build_hash,
             "project_dir_abs_path": project_dir,
             "project_name": project.get("name"),
             "project_version": project.get("version"),
@@ -224,26 +207,16 @@ class BuildConfig(BaseModel):
                 else None
             ),
             "install_as_package": tool_pyretort.get("install_as_package"),
-            "python_version": tool_pyretort.get("python_version"),
-            "python_architecture": PythonArchitecture(
-                tool_pyretort.get("python_architecture")
-            ),
+            "python_version": python_version,
+            "python_architecture": python_architecture,
             "build_backend": BuildBackend(build_system.get("build-backend")),
-            "pydist_rel_subdir_path": Path(tool_pyretort.get("pydist_dir")),
-            "build_source_rel_subdir_path": Path(tool_pyretort.get("build_source_dir")),
-            "exe_file_name": tool_pyretort.get("exe_file_name"),
             "icon_file_rel_path": (
                 Path(tool_pyretort["icon_file_rel_path"])
                 if "icon_file_rel_path" in tool_pyretort
                 else None
             ),
             "show_console_window": tool_pyretort.get("show_console_window"),
-            "dist_zip_file_name": tool_pyretort.get("dist_zip_file_name"),
-            "download_cache_rel_dir_path": Path(
-                tool_pyretort.get("download_cache_dir")
-            ),
-            "build_output_rel_dir_path": Path(tool_pyretort.get("build_output_dir")),
-            "dist_output_rel_dir_path": Path(tool_pyretort.get("dist_output_dir")),
+            "create_dist_zip_file": tool_pyretort.get("create_dist_zip_file"),
         }
 
         return cls(**config_data)

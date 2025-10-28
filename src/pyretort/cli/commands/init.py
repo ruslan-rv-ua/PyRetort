@@ -1,61 +1,107 @@
-from __future__ import annotations
-
+import sys
 from pathlib import Path
+from typing import Any
 
+import tomlkit
 import typer
+from slugify import slugify
 
 from pyretort.cli._output import echo
-from pyretort.config_generator import generate_config_file, gether_project_data
-from pyretort.constants import CONFIG_FILE_NAME
+from pyretort.constants import (
+    INSTALL_AS_PACKAGE_DEFAULT,
+    SHOW_CONSOLE_DEFAULT,
+)
+from pyretort.types import PythonArchitecture
 
 
 def init_command(
     ctx: typer.Context,
-    project_dir: Path = typer.Option(
-        Path.cwd(),
-        "--project-dir",
+    pyproject_toml_path: Path = typer.Option(
+        Path.cwd() / "pyproject.toml",
+        "--pyproject-toml",
         "-p",
         exists=True,
-        file_okay=False,
-        dir_okay=True,
+        file_okay=True,
+        dir_okay=False,
         writable=True,
-        help="Project directory that should built.",
-    ),
-    force: bool = typer.Option(
-        False,
-        "--force",
-        "-f",
-        help="Overwrite existing configuration file if present.",
-    ),
-    comments: bool = typer.Option(
-        False,
-        "--comments",
-        "-c",
-        help="Generate configuration with explanatory comments.",
+        help="Path to the pyproject.toml file of the target project.",
     ),
 ) -> None:
-    """Generate a starter configuration in the chosen project directory."""
+    """Initialize a PyRetort configuration file for a Python project."""
 
-    project_dir = project_dir.resolve()
-    if not project_dir.exists() or not project_dir.is_dir():
-        echo(ctx, f"Project directory not found: {project_dir}", err=True)
-        raise typer.Exit(1)
+    pyproject_toml_path = pyproject_toml_path.resolve()
 
-    config_path = project_dir / CONFIG_FILE_NAME
-    if config_path.exists() and not force:
-        echo(
-            ctx,
-            f"{CONFIG_FILE_NAME} already exists in {project_dir}. Use --force to overwrite.",
-            err=True,
-        )
-        raise typer.Exit(1)
+    _update_pyproject_toml(pyproject_toml_path)
 
-    project_data = gether_project_data(project_dir)
-
-    generate_config_file(
-        project_root=project_dir, project_data=project_data, with_comments=comments
-    )
-    echo(ctx, f"Pyretort configuration created at {config_path}")
+    echo(ctx, f"pyproject.toml updated successfully at: {pyproject_toml_path}")
     echo(ctx, "Next steps:")
-    echo(ctx, f"  1. Review and customize {CONFIG_FILE_NAME} as needed.")
+    echo(
+        ctx,
+        "  1. Review and customize the [tool.pyretort] section in pyproject.toml as needed.",
+    )
     echo(ctx, "  2. Run 'pyretort build' to create the distributable package.")
+
+
+def _update_pyproject_toml(pyproject_toml_path: Path) -> None:
+    """Update the pyproject.toml file to include PyRetort configuration."""
+
+    project_path = pyproject_toml_path.parent.resolve()
+
+    pyproject_data = tomlkit.parse(pyproject_toml_path.read_text(encoding="utf-8"))
+
+    if "tool" not in pyproject_data:
+        pyproject_data["tool"] = tomlkit.table()
+
+    tool_section = pyproject_data.get("tool")
+    if tool_section is None:
+        tool_section = tomlkit.table()
+        pyproject_data["tool"] = tool_section
+
+    pyretort_config: dict[str, Any] = tomlkit.table()
+
+    project_name = str(pyproject_data.get("project", {}).get("name", ""))
+    source_subdir = _find_project_source_subdir(project_path, project_name)
+    print(f"{source_subdir=}")
+    pyretort_config["project_source_subdir"] = source_subdir
+    pyretort_config["main_file"] = _find_main_file(project_path / source_subdir)
+    pyretort_config["install_as_package"] = INSTALL_AS_PACKAGE_DEFAULT
+
+    pyretort_config["python_version"] = _find_python_version()
+    pyretort_config["python_architecture"] = _find_python_architecture()
+
+    pyretort_config["show_console_window"] = SHOW_CONSOLE_DEFAULT
+
+    tool_section["pyretort"] = pyretort_config
+
+    pyproject_toml_path.write_text(tomlkit.dumps(pyproject_data), encoding="utf-8")
+
+
+def _find_project_source_subdir(project_path: Path, project_name: str) -> str:
+    """Attempt to find the main source subdirectory of the project."""
+    common_dirs = [".", "src", "source", "app", "lib"]
+    slugified_name = slugify(project_name, separator="_")
+    for dir_name in common_dirs:
+        candidate = project_path / dir_name / slugified_name
+        if candidate.is_dir():
+            return candidate.relative_to(project_path).as_posix()
+    return "."  # Default to project root if no common source dir found
+
+
+def _find_main_file(source_dir: Path) -> str | None:
+    """Attempt to find the main Python file in the source directory."""
+    common_main_files = ["main.py", "app.py", "run.py"]
+    for file_name in common_main_files:
+        candidate = source_dir / file_name
+        if candidate.is_file():
+            return file_name
+    return None
+
+
+def _find_python_version() -> str:
+    """Get the current Python version as a string."""
+    return f"{sys.version_info.major}.{sys.version_info.minor}"
+
+
+def _find_python_architecture() -> PythonArchitecture:
+    """Get the current Python architecture (32-bit or 64-bit)."""
+    return PythonArchitecture.AMD64 if sys.maxsize > 2**32 else PythonArchitecture.WIN32

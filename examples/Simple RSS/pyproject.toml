@@ -20,3 +20,11 @@ simple-rss = "simple_rss:main"
 [build-system]
 requires = ["uv_build>=0.9.4,<0.10.0"]
 build-backend = "uv_build"
+
+[tool.pyretort]
+project_source_subdir = "src/simple_rss"
+main_file = "main.py"
+install_as_package = true
+python_version = "3.13"
+python_architecture = "amd64"
+show_console_window = false
