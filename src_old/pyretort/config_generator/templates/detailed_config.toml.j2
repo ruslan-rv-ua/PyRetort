@@ -1,0 +1,295 @@
+################################################################################
+# PyRetort Build Configuration - Detailed Version
+################################################################################
+#
+# This is a detailed configuration file for PyRetort with comprehensive
+# explanations for each setting. Use this file if you want to understand
+# all available options and customize your build process.
+#
+# For a simpler configuration with minimal comments, consider using the
+# short configuration template instead.
+#
+################################################################################
+
+################################################################################
+# PROJECT CONFIGURATION
+################################################################################
+# These settings define your Python project's structure and entry point.
+
+# project_dir: Absolute path to the root directory of your Python project.
+# This is where PyRetort will look for your source code, requirements, and
+# other project files. The path is escaped for Windows compatibility.
+#
+# Example: "C:\\Users\\YourName\\Projects\\MyApp"
+project_dir = "{{ project_dir | replace('\\', '\\\\') }}"
+
+# requirements: List of Python packages that your project depends on.
+# These will be bundled with the executable. Use pip-style version specifiers.
+#
+# Examples:
+#   - "requests>=2.28.0" - Any version 2.28.0 or higher
+#   - "click==8.1.0" - Exact version 8.1.0
+#   - "numpy" - Any version (not recommended for production)
+#
+# Note: All dependencies will be downloaded and packaged with your application.
+requirements = [
+{%- for req in requirements %}
+    "{{ req }}"{% if not loop.last %},{% endif %}
+{%- endfor %}
+]
+
+# project_source_subdir: Relative path from project_dir to the directory
+# containing your main Python package or module.
+#
+# Common values:
+#   - "src" - if your code is in a 'src' folder
+#   - "." - if your code is in the project root
+#   - "lib" or "app" - for other organizational structures
+#
+# Example structure:
+#   MyProject/
+#     ├── src/           ← this would be "src"
+#     │   └── myapp/
+#     │       └── main.py
+#     └── pyretort.toml
+project_source_subdir = "{{ project_source_subdir | replace('\\', '\\\\') }}"
+
+# main_file: The Python file that serves as the entry point to your application.
+# This is the file that will be executed when the generated .exe is run.
+#
+# Examples:
+#   - "main.py" - common entry point name
+#   - "app.py" - alternative entry point
+#   - "__main__.py" - for package-style entry points
+main_file = "{{ main_file }}"
+
+# run_as_package: Whether to run the project as a Python package using -m flag.
+#
+# Set to true if:
+#   - Your project uses relative imports
+#   - You have a __main__.py file
+#   - Your project is structured as a proper Python package
+#
+# Set to false if:
+#   - Your main file is a standalone script
+#   - You don't use relative imports
+#
+# Technical note: true = "python -m mypackage", false = "python main.py"
+run_as_package = {{ run_as_package | lower }}
+
+################################################################################
+# EMBEDDED PYTHON INTERPRETER
+################################################################################
+# These settings control which Python version and architecture will be
+# embedded in your executable.
+
+# python_version: The exact Python version to embed in the build.
+# This version will be downloaded and packaged with your application,
+# ensuring consistency across different systems.
+#
+# Format: "major.minor.patch" (e.g., "3.11.4", "3.10.11")
+#
+# Recommendations:
+#   - Use the same version you develop with for best compatibility
+#   - Choose LTS versions for production (3.10, 3.11)
+#   - Avoid very new versions unless you need specific features
+python_version = "{{ python_version }}"
+
+# python_architecture: Target CPU architecture for the embedded Python.
+#
+# Available options:
+#   - "AMD64" - 64-bit Intel/AMD processors (most common)
+#   - "x86" - 32-bit Intel/AMD processors (legacy systems)
+#   - "ARM64" - 64-bit ARM processors (newer devices)
+#   - "" (empty) - Automatically detect based on your current system
+#
+# Important: The architecture must match your target deployment system.
+# An AMD64 executable won't run on ARM64 systems and vice versa.
+{% if python_architecture -%}
+python_architecture = "{{ python_architecture }}"
+{% else -%}
+# python_architecture = ""  # Auto-detect from current system
+{% endif %}
+
+################################################################################
+# BUILD DIRECTORIES
+################################################################################
+# These directories are used during the build process for intermediate files.
+
+# pydist_dir: Directory where the Python distribution (embeddable Python)
+# will be extracted and prepared.
+#
+# This directory contains:
+#   - Python interpreter (python.exe)
+#   - Standard library modules
+#   - DLLs and other runtime files
+#
+# Note: This is a temporary directory that can be deleted after the build.
+pydist_dir = "{{ pydist_dir | replace('\\', '\\\\') }}"
+
+# build_source_dir: Directory where your source code and dependencies
+# will be copied and organized before being packaged.
+#
+# This directory contains:
+#   - Your project's source code
+#   - Installed Python packages
+#   - Generated launcher scripts
+#
+# Note: This is a temporary directory that can be deleted after the build.
+build_source_dir = "{{ build_source_dir | replace('\\', '\\\\') }}"
+
+################################################################################
+# OUTPUT FILES
+################################################################################
+# These settings control the final executable and its appearance.
+
+# exe_file_name: Name of the generated executable file (without path).
+#
+# Examples:
+#   - "MyApp.exe" - Simple application name
+#   - "my-tool-v1.0.exe" - Version in filename
+#   - "CompanyName.ProductName.exe" - Namespaced application
+#
+# Note: The .exe extension is required on Windows.
+exe_file_name = "{{ exe_file_name }}"
+
+{% if icon_path -%}
+# icon_path: Absolute path to a .ico file to use as the executable's icon.
+# This icon will appear in Windows Explorer and the taskbar.
+#
+# Requirements:
+#   - Must be a valid Windows .ico file
+#   - Should contain multiple sizes (16x16, 32x32, 48x48, 256x256)
+#   - Recommended to include both 32-bit and 8-bit color depths
+#
+# Tools to create .ico files:
+#   - GIMP (free, open source)
+#   - IconForge, IcoFX (commercial)
+#   - Online converters (png-to-ico.com)
+icon_path = "{{ icon_path | replace('\\', '\\\\') }}"
+{% else -%}
+# icon_path: Path to a custom .ico file for the executable icon.
+# Uncomment and set this to customize your application's appearance.
+#
+# Example:
+#   icon_path = "C:\\MyProject\\assets\\app_icon.ico"
+#
+# icon_path = ""
+{% endif -%}
+
+# show_console: Whether to show a console window when the application runs.
+#
+# Set to true if:
+#   - Your application is a command-line tool
+#   - You need to see print() output or error messages
+#   - You want users to interact via terminal
+#
+# Set to false if:
+#   - Your application has a GUI (Tkinter, PyQt, etc.)
+#   - You want a "silent" background application
+#   - You don't need console output
+#
+# Note: If false, stdout/stderr won't be visible unless redirected to a file.
+show_console = {{ show_console | lower }}
+
+# dist_zip_file_name: Name of the ZIP archive containing all distribution files.
+# Uncomment this line to automatically create a ZIP archive after the build.
+#
+# The ZIP will contain:
+#   - The executable (.exe)
+#   - Python runtime files
+#   - All dependencies
+#   - Any additional files specified
+#
+# This is useful for:
+#   - Easy distribution to end users
+#   - Deployment to multiple machines
+#   - Creating release artifacts
+#
+# Example:
+#   dist_zip_file_name = "MyApp-v1.0-win64.zip"
+#
+# dist_zip_file_name = "{{ dist_zip_file_name }}"
+
+################################################################################
+# CACHE AND BUILD OUTPUT DIRECTORIES
+################################################################################
+# These directories store downloaded files and build artifacts.
+
+# download_cache_dir: Directory for caching downloaded Python distributions
+# and packages. Reusing cached files speeds up subsequent builds.
+#
+# Benefits of caching:
+#   - Faster builds (no re-downloading)
+#   - Works offline after first download
+#   - Reduces bandwidth usage
+#
+# Safe to delete: Yes, will be re-downloaded on next build.
+download_cache_dir = "{{ download_cache_dir | replace('\\', '\\\\') }}"
+
+# build_output_dir: Directory for all intermediate build outputs and
+# temporary files created during the build process.
+#
+# Contents:
+#   - Compiled Python bytecode (.pyc files)
+#   - Temporary build scripts
+#   - Intermediate executable versions
+#
+# This directory can be safely deleted after a successful build.
+build_output_dir = "{{ build_output_dir | replace('\\', '\\\\') }}"
+
+# dist_output_dir: Directory where the final, distributable artifacts
+# are placed after a successful build.
+#
+# This directory contains:
+#   - The final executable (.exe)
+#   - Any generated ZIP archives
+#   - README or documentation files (if configured)
+#
+# This is the directory you'll want to share or deploy.
+dist_output_dir = "{{ dist_output_dir | replace('\\', '\\\\') }}"
+
+################################################################################
+# ADVANCED CONFIGURATION
+################################################################################
+# The following sections are for advanced users who need fine-grained control
+# over the build process. Most users can safely ignore these settings.
+
+# Custom Python modules to exclude from the build:
+# Some packages include large files that aren't needed at runtime.
+# Excluding them reduces the final executable size.
+#
+# Example:
+#   exclude_modules = ["test", "unittest", "tkinter"]
+#
+# exclude_modules = []
+
+# Additional files or directories to include in the distribution:
+# If your application needs data files, configuration, or other assets,
+# list them here.
+#
+# Example:
+#   include_files = [
+#       {"src": "config/default.ini", "dest": "config/"},
+#       {"src": "assets/", "dest": "assets/"}
+#   ]
+#
+# include_files = []
+
+# Environment variables to set when the executable runs:
+# Useful for configuring runtime behavior without changing code.
+#
+# Example:
+#   environment_variables = {
+#       "APP_MODE": "production",
+#       "LOG_LEVEL": "INFO"
+#   }
+#
+# environment_variables = {}
+
+################################################################################
+# END OF CONFIGURATION
+################################################################################
+# For more information, visit: https://github.com/ruslan-rv-ua/PyRetort
+# Documentation: [Add documentation URL when available]
+################################################################################

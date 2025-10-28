@@ -1,0 +1,22 @@
+[project]
+name = "simple-rss"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Ruslan Iskov", email = "ruslan.rv.ua+github@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "wxPython>=4.2.0",
+    "httpx>=0.24.0",
+    "peewee>=3.16.0",
+    "fastfeedparser>=0.0.12",
+]
+
+[project.scripts]
+simple-rss = "simple_rss:main"
+
+[build-system]
+requires = ["uv_build>=0.9.4,<0.10.0"]
+build-backend = "uv_build"

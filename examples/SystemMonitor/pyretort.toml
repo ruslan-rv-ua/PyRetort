@@ -1,0 +1,59 @@
+# PyRetort Build Configuration
+
+############################################################
+# your project
+############################################################
+# Path to the root of the user's project (escaped for Windows paths)
+project_dir = "C:\\dev\\PyRetort\\examples\\SystemMonitor"
+# List of package requirements to include in the build
+requirements = [
+    "datastar-py",
+    "fastapi",
+    "htpy",
+    "psutil",
+    "pywebview",
+    "uvicorn"
+]
+# Subdirectory inside project_dir that contains the source package/module
+project_source_subdir = "."
+# The entry-point file to run (e.g., main.py)
+main_file = "app.py"
+# Whether to run the project with -m (treat as package)
+run_as_package = false
+
+############################################################
+# Embedded python interpreter
+############################################################
+# Target Python version to embed in the build (e.g., 3.11.4)
+python_version = "3.13.9"
+# Optional Python architecture (AMD64, ARM64, x86). Empty = autodetect
+python_architecture = "amd64"
+
+############################################################
+# Build directories
+############################################################
+# Directory where Python distribution files will be placed
+pydist_dir = "pydist"
+# Directory containing temporary build source files
+build_source_dir = "system_monitor"
+
+############################################################
+# Output files
+############################################################
+# Name of the generated executable (without path)
+exe_file_name = "system-monitor.exe"
+# icon_path = ""
+# Whether the console window is shown when running the exe (true/false)
+show_console = false
+# Name of the final distribution ZIP archive, uncomment to be created
+# dist_zip_file_name = "system-monitor-0.1.0-amd64.zip"
+
+############################################################
+# Cache and build output directories
+############################################################
+# Directory used to cache downloaded dependencies
+download_cache_dir = "downloads"
+# Directory for intermediate build outputs
+build_output_dir = "build"
+# Directory where final distribution artifacts are written
+dist_output_dir = "dist"
