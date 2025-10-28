@@ -100,14 +100,14 @@ class BuildConfig(BaseModel):
 
         # Set defaults for directory fields from constants
         from pyretort.constants import (
-            BUILD_OUTPUT_DIR_DEFAULT,
-            DIST_OUTPUT_DIR_DEFAULT,
-            DOWNLOAD_CACHE_DIR_DEFAULT,
+            BUILD_DIR_DEFAULT,
+            DIST_DIR_DEFAULT,
+            DOWNLOAD_DIR_DEFAULT,
         )
 
-        config_data.setdefault("download_cache_dir", Path(DOWNLOAD_CACHE_DIR_DEFAULT))
-        config_data.setdefault("build_output_dir", Path(BUILD_OUTPUT_DIR_DEFAULT))
-        config_data.setdefault("dist_output_dir", Path(DIST_OUTPUT_DIR_DEFAULT))
+        config_data.setdefault("download_cache_dir", Path(DOWNLOAD_DIR_DEFAULT))
+        config_data.setdefault("build_output_dir", Path(BUILD_DIR_DEFAULT))
+        config_data.setdefault("dist_output_dir", Path(DIST_DIR_DEFAULT))
 
         return cls(**config_data)
 

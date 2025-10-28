@@ -9,10 +9,10 @@ from typing_extensions import Annotated
 
 from pyretort.cli._output import echo
 from pyretort.constants import (
-    BUILD_OUTPUT_DIR_DEFAULT,
+    BUILD_DIR_DEFAULT,
     CONFIG_FILE_NAME,
-    DIST_OUTPUT_DIR_DEFAULT,
-    DOWNLOAD_CACHE_DIR_DEFAULT,
+    DIST_DIR_DEFAULT,
+    DOWNLOAD_DIR_DEFAULT,
 )
 
 VALID_TARGETS = ["cache", "build", "all"]
@@ -98,13 +98,13 @@ def _cleanup_file(ctx: typer.Context, file_path: str, description: str) -> None:
 
 def _cleanup_cache(ctx: typer.Context) -> None:
     """Clean up the cache directory."""
-    _cleanup_dir(ctx, DOWNLOAD_CACHE_DIR_DEFAULT, "cache directory")
+    _cleanup_dir(ctx, DOWNLOAD_DIR_DEFAULT, "cache directory")
 
 
 def _cleanup_build(ctx: typer.Context) -> None:
     """Clean up the build and dist directories."""
-    _cleanup_dir(ctx, BUILD_OUTPUT_DIR_DEFAULT, "build directory")
-    _cleanup_dir(ctx, DIST_OUTPUT_DIR_DEFAULT, "dist directory")
+    _cleanup_dir(ctx, BUILD_DIR_DEFAULT, "build directory")
+    _cleanup_dir(ctx, DIST_DIR_DEFAULT, "dist directory")
 
 
 def _cleanup_config(ctx: typer.Context) -> None:

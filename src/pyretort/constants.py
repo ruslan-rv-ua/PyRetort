@@ -8,13 +8,13 @@ INSTALL_AS_PACKAGE_DEFAULT = True
 PYDIST_DIR_DEFAULT = "pydist"
 
 # cache directory for downloaded packages/files
-DOWNLOAD_CACHE_DIR_DEFAULT = "downloads"
+DOWNLOAD_DIR_DEFAULT = "downloads"
 
 # directory for intermediate build outputs
-BUILD_OUTPUT_DIR_DEFAULT = "build"
+BUILD_DIR_DEFAULT = "build"
 
 # directory for final distribution packages
-DIST_OUTPUT_DIR_DEFAULT = "dist"
+DIST_DIR_DEFAULT = "dist"
 
 # Default blacklist of file patterns to exclude from application distribution.
 # These patterns represent files and directories that should not be included in the final
