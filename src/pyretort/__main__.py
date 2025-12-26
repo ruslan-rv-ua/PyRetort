@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Module entry point for ``python -m pyretort``."""
 
 from pyretort import main

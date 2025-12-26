@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """This module provides functions for generating executable files on Windows.
 
 Functions:

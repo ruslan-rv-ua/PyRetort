@@ -892,3 +892,163 @@ class TestBuildConfigFromPyprojectToml:
 
         with pytest.raises(ValueError, match="Icon file must be relative"):
             BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_missing_create_dist_zip_file(self, tmp_path: Path) -> None:
+        """Test that ValueError is raised when 'create_dist_zip_file' is missing."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dependencies": [],
+            },
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": True,
+                    "show_console_window": False,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        source_dir = tmp_path / "src"
+        source_dir.mkdir(parents=True, exist_ok=True)
+
+        with pytest.raises(
+            ValueError, match="Missing 'create_dist_zip_file' in \\[tool.pyretort\\]"
+        ):
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_invalid_install_as_package_type(self, tmp_path: Path) -> None:
+        """Test that ValueError is raised when 'install_as_package' is not a boolean."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dependencies": [],
+            },
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": "yes",  # Invalid: should be bool
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        source_dir = tmp_path / "src"
+        source_dir.mkdir(parents=True, exist_ok=True)
+
+        with pytest.raises(ValueError, match="'install_as_package' must be a boolean"):
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_invalid_show_console_window_type(self, tmp_path: Path) -> None:
+        """Test that ValueError is raised when 'show_console_window' is not a boolean."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dependencies": [],
+            },
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": True,
+                    "show_console_window": "true",  # Invalid: should be bool
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        source_dir = tmp_path / "src"
+        source_dir.mkdir(parents=True, exist_ok=True)
+
+        with pytest.raises(ValueError, match="'show_console_window' must be a boolean"):
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_invalid_create_dist_zip_file_type(self, tmp_path: Path) -> None:
+        """Test that ValueError is raised when 'create_dist_zip_file' is not a boolean."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dependencies": [],
+            },
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": True,
+                    "show_console_window": False,
+                    "create_dist_zip_file": "yes",  # Invalid: should be bool
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        source_dir = tmp_path / "src"
+        source_dir.mkdir(parents=True, exist_ok=True)
+
+        with pytest.raises(
+            ValueError, match="'create_dist_zip_file' must be a boolean"
+        ):
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_valid_boolean_fields(self, tmp_path: Path) -> None:
+        """Test that valid boolean fields are accepted."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dependencies": [],
+            },
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": False,
+                    "show_console_window": True,
+                    "create_dist_zip_file": False,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        source_dir = tmp_path / "src"
+        source_dir.mkdir(parents=True, exist_ok=True)
+
+        config = BuildConfig.from_pyproject_toml(pyproject_path)
+        assert config.install_as_package is False
+        assert config.show_console_window is True
+        assert config.create_dist_zip_file is False

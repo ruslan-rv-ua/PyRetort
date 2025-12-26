@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # whether to show spawned process consoles by default
 SHOW_CONSOLE_DEFAULT = False
 

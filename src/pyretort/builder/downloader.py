@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Downloader class for downloading files from a given URL to a local file path."""
 
 from pathlib import Path

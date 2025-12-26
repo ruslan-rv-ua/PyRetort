@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """PyRetort - Python project bundler for Windows."""
 
 from pyretort.cli import app

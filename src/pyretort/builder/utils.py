@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 def make_short_python_version(version: str) -> str:
     """Convert a Python version string to a short format.
 

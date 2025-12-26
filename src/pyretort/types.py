@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import tomllib
 from enum import StrEnum
 from hashlib import sha256
@@ -225,6 +227,7 @@ class BuildConfig(BaseModel):
             "python_version",
             "python_architecture",
             "project_source_subdir",
+            "create_dist_zip_file",
         ]
         for field in required_pyretort_fields:
             if field not in tool_pyretort:
@@ -305,6 +308,27 @@ class BuildConfig(BaseModel):
                 f"Valid values: {', '.join(valid)}"
             ) from e
 
+        # Validate boolean fields
+        install_as_package = tool_pyretort.get("install_as_package")
+        if install_as_package is not None and not isinstance(install_as_package, bool):
+            raise ValueError(
+                f"'install_as_package' must be a boolean, got {type(install_as_package).__name__}"
+            )
+
+        show_console_window = tool_pyretort.get("show_console_window")
+        if show_console_window is not None and not isinstance(
+            show_console_window, bool
+        ):
+            raise ValueError(
+                f"'show_console_window' must be a boolean, got {type(show_console_window).__name__}"
+            )
+
+        create_dist_zip_file = tool_pyretort.get("create_dist_zip_file")
+        if not isinstance(create_dist_zip_file, bool):
+            raise ValueError(
+                f"'create_dist_zip_file' must be a boolean, got {type(create_dist_zip_file).__name__}"
+            )
+
         # Extract configuration with defaults
         config_data = {
             "build_hash": build_hash,
@@ -313,13 +337,13 @@ class BuildConfig(BaseModel):
             "project_version": project.get("version"),
             "project_source_subdir_rel_path": source_subdir,
             "main_file_rel_path": main_file_rel_path,
-            "install_as_package": tool_pyretort.get("install_as_package"),
+            "install_as_package": install_as_package,
             "python_version": python_version,
             "python_architecture": python_architecture,
             "build_backend": build_backend,
             "icon_file_rel_path": icon_file_rel_path,
-            "show_console_window": tool_pyretort.get("show_console_window"),
-            "create_dist_zip_file": tool_pyretort.get("create_dist_zip_file"),
+            "show_console_window": show_console_window,
+            "create_dist_zip_file": create_dist_zip_file,
         }
 
         return cls(**config_data)
