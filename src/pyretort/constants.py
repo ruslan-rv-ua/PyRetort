@@ -25,7 +25,7 @@ DIST_DIR_DEFAULT = "dist"
 # Includes: bytecode, virtual environments, version control, IDE settings, test artifacts,
 # build outputs, and other common development-related files.
 DEFAULT_BLACKLIST = [
-    # Python bytecode and cache
+    # === Python artifacts ===
     "*.pyc",
     "*.pyo",
     "*.pyd",
@@ -33,27 +33,39 @@ DEFAULT_BLACKLIST = [
     "*.so",
     "*.dll",
     "*.dylib",
-    # Virtual environments
+    "*.egg-info",
+    "*.egg",
+    ".eggs",
+    "*.spec",  # PyInstaller
+    # === Virtual environments ===
     ".venv",
     "venv",
     "env",
     "ENV",
     ".env",
-    # Version control
+    # === Build outputs ===
+    "build",
+    "dist",
+    "pip-wheel-metadata",
+    # === Version control ===
     ".git",
     ".gitignore",
     ".gitattributes",
     ".hg",
     ".svn",
     ".bzr",
-    # IDEs and editors
+    # === IDE/Editor ===
     ".vscode",
     ".idea",
+    ".vs",
     "*.swp",
     "*.swo",
     "*~",
-    ".DS_Store",
-    # Testing and coverage
+    "*~.nib",
+    "*.sublime-workspace",
+    "*.sublime-project",
+    ".emacs.d",
+    # === Testing ===
     ".pytest_cache",
     ".coverage",
     ".coverage.*",
@@ -62,58 +74,28 @@ DEFAULT_BLACKLIST = [
     ".tox",
     ".nox",
     ".benchmarks",
-    # Build artifacts
-    "*.egg-info",
-    "*.egg",
-    "dist",
-    "build",
-    ".eggs",
-    "pip-wheel-metadata",
-    "*.spec",  # PyInstaller
-    # Dependency lock files
+    # === Type checking ===
+    ".mypy_cache",
+    ".ruff_cache",
+    ".pytype",
+    "*.tsbuildinfo",
+    # === OS files ===
+    ".DS_Store",
+    "Thumbs.db",
+    "desktop.ini",  # Windows is case-insensitive
+    "Icon?",
+    ".spotlight-V100",
+    ".Trash-*",
+    # === Dependency locks ===
     "uv.lock",
     "poetry.lock",
     "pdm.lock",
     "pyproject.lock",
     ".pdm-build",
-    # Documentation
-    "docs/_build",
-    # Windows-specific
-    "Thumbs.db",
-    "Desktop.ini",
-    ".vs",
-    # GitHub and CI
-    ".github",
-    "GITHUB_WORKFLOW",
-    "GITHUB_ACTIONS",
-    "GITHUB_*",
-    ".github/*",
-    # Kilocode (common patterns / guessed names)
-    "kilocode",
-    "kilocode.*",
-    ".kilocode",
-    # Editors and tools
-    ".emacs.d",
-    "*~.nib",
-    "*.sublime-workspace",
-    "*.sublime-project",
-    ".idea/*",
-    ".vscode/*",
-    ".cache",
-    ".m2",
-    ".gradle",
-    "node_modules",
-    "npm-debug.log",
-    "yarn-error.log",
     "pnpm-lock.yaml",
     "package-lock.json",
-    "*.tsbuildinfo",
-    # Docker and container artifacts
-    "Dockerfile",
-    "docker-compose.yml",
-    "docker-compose.*.yml",
-    "docker/*",
-    # Continuous Integration / build system artifacts
+    # === CI/CD ===
+    ".github",
     ".circleci",
     ".travis.yml",
     "appveyor.yml",
@@ -121,18 +103,28 @@ DEFAULT_BLACKLIST = [
     "Jenkinsfile",
     "buildkite.yml",
     "ci",
-    # Misc OS and tool artifacts
-    ".DS_Store",
-    "desktop.ini",
-    "Icon?",
-    ".spotlight-V100",
-    ".Trash-*",
-    # Misc
+    # === Docker ===
+    "Dockerfile",
+    "docker-compose.yml",
+    "docker-compose.*.yml",
+    "docker/*",
+    # === Node.js ===
+    "node_modules",
+    "npm-debug.log",
+    "yarn-error.log",
+    # === Java/Maven/Gradle ===
+    ".m2",
+    ".gradle",
+    # === Documentation ===
+    "docs/_build",
+    # === Kilocode ===
+    "kilocode",
+    "kilocode.*",
+    ".kilocode",
+    # === Misc ===
     "*.log",
-    ".mypy_cache",
-    ".ruff_cache",
-    ".pytype",
     "*.orig",
     "*.bak",
     "*.tmp",
+    ".cache",
 ]
