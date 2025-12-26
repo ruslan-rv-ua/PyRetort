@@ -75,8 +75,14 @@ def _update_pyproject_toml(pyproject_toml_path: Path) -> None:
             "Name of the main Python file to execute (e.g., main.py, app.py)"
         )
     )
-    pyretort_config["main_file"] = _find_main_file(project_path / source_subdir)
-
+    main_file = _find_main_file(project_path / source_subdir)
+    if main_file is None:
+        pyretort_config.add(
+            tomlkit.comment("TODO: Update this to point to your main application file")
+        )
+        pyretort_config["main_file"] = "main.py"
+    else:
+        pyretort_config["main_file"] = main_file
     pyretort_config.add(
         tomlkit.comment(
             "Whether to install the project as a Python package during build"
