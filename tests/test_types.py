@@ -264,6 +264,7 @@ class TestBuildConfig:
             build_backend=BuildBackend.UV,
             create_dist_zip_file=False,
         )
+        # Field validators only check if paths are relative, not if they exist
         assert config.main_file_rel_path == Path("main.py")
         assert config.icon_file_rel_path == Path("icon.ico")
 
@@ -399,3 +400,495 @@ class TestBuildConfigFromPyprojectToml:
         config2 = BuildConfig.from_pyproject_toml(p2)
 
         assert config1.build_hash != config2.build_hash
+
+    def test_missing_project_section(self, tmp_path: Path) -> None:
+        """Test that ValueError is raised when [project] section is missing."""
+        import tomli_w
+
+        data = {
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": True,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        with pytest.raises(ValueError, match="Missing \\[project\\] section"):
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_missing_project_name(self, tmp_path: Path) -> None:
+        """Test that ValueError is raised when 'name' field is missing in [project]."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "version": "0.1.0",
+                "dependencies": [],
+            },
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": True,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        with pytest.raises(ValueError, match="Missing 'name' field"):
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_missing_project_version(self, tmp_path: Path) -> None:
+        """Test that ValueError is raised when 'version' field is missing in [project]."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "dependencies": [],
+            },
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": True,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        with pytest.raises(ValueError, match="Missing 'version' field"):
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_missing_tool_pyretort_section(self, tmp_path: Path) -> None:
+        """Test that ValueError is raised when [tool.pyretort] section is missing."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dependencies": [],
+            },
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        with pytest.raises(ValueError, match="Missing \\[tool.pyretort\\] section"):
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_missing_python_version_in_tool_pyretort(self, tmp_path: Path) -> None:
+        """Test that ValueError is raised when 'python_version' is missing."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dependencies": [],
+            },
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src",
+                    "python_architecture": "amd64",
+                    "install_as_package": True,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        with pytest.raises(
+            ValueError, match="Missing 'python_version' in \\[tool.pyretort\\]"
+        ):
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_missing_python_architecture_in_tool_pyretort(self, tmp_path: Path) -> None:
+        """Test that ValueError is raised when 'python_architecture' is missing."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dependencies": [],
+            },
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src",
+                    "python_version": "3.13.0",
+                    "install_as_package": True,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        with pytest.raises(
+            ValueError, match="Missing 'python_architecture' in \\[tool.pyretort\\]"
+        ):
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_missing_project_source_subdir_in_tool_pyretort(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that ValueError is raised when 'project_source_subdir' is missing."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dependencies": [],
+            },
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+            "tool": {
+                "pyretort": {
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": True,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        with pytest.raises(
+            ValueError, match="Missing 'project_source_subdir' in \\[tool.pyretort\\]"
+        ):
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_missing_build_system_section(self, tmp_path: Path) -> None:
+        """Test that ValueError is raised when [build-system] section is missing."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dependencies": [],
+            },
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": True,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        with pytest.raises(ValueError, match="Missing \\[build-system\\] section"):
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_missing_build_backend(self, tmp_path: Path) -> None:
+        """Test that ValueError is raised when 'build-backend' is missing."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dependencies": [],
+            },
+            "build-system": {"requires": ["uv_build"]},
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": True,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        with pytest.raises(ValueError, match="Missing 'build-backend' field"):
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_invalid_python_architecture(self, tmp_path: Path) -> None:
+        """Test that ValueError is raised for invalid python_architecture."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dependencies": [],
+            },
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src",
+                    "python_version": "3.13.0",
+                    "python_architecture": "invalid_arch",
+                    "install_as_package": True,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        source_dir = tmp_path / "src"
+        source_dir.mkdir(parents=True, exist_ok=True)
+
+        with pytest.raises(
+            ValueError, match="Invalid python_architecture: 'invalid_arch'"
+        ):
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_invalid_build_backend(self, tmp_path: Path) -> None:
+        """Test that ValueError is raised for invalid build-backend."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dependencies": [],
+            },
+            "build-system": {
+                "requires": ["uv_build"],
+                "build-backend": "invalid_backend",
+            },
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": True,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        source_dir = tmp_path / "src"
+        source_dir.mkdir(parents=True, exist_ok=True)
+
+        with pytest.raises(
+            ValueError, match="Invalid build-backend: 'invalid_backend'"
+        ):
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_source_subdir_does_not_exist(self, tmp_path: Path) -> None:
+        """Test that ValueError is raised when source subdirectory doesn't exist."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dependencies": [],
+            },
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "nonexistent_dir",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": True,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        with pytest.raises(ValueError, match="Source subdirectory does not exist"):
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_source_subdir_is_absolute_path(self, tmp_path: Path) -> None:
+        """Test that ValueError is raised when source subdirectory is absolute."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dependencies": [],
+            },
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "C:/absolute/path",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": True,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        with pytest.raises(ValueError, match="Source subdirectory must be relative"):
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_main_file_does_not_exist(self, tmp_path: Path) -> None:
+        """Test that ValueError is raised when main file doesn't exist."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dependencies": [],
+            },
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src",
+                    "main_file": "nonexistent.py",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": True,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        source_dir = tmp_path / "src"
+        source_dir.mkdir(parents=True, exist_ok=True)
+
+        with pytest.raises(ValueError, match="Main file does not exist"):
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_main_file_is_absolute_path(self, tmp_path: Path) -> None:
+        """Test that ValueError is raised when main file is absolute."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dependencies": [],
+            },
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src",
+                    "main_file": "C:/absolute/path/main.py",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": True,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        source_dir = tmp_path / "src"
+        source_dir.mkdir(parents=True, exist_ok=True)
+
+        with pytest.raises(ValueError, match="Main file must be relative"):
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_icon_file_does_not_exist(self, tmp_path: Path) -> None:
+        """Test that ValueError is raised when icon file doesn't exist."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dependencies": [],
+            },
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src",
+                    "icon_file_rel_path": "nonexistent.ico",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": True,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        source_dir = tmp_path / "src"
+        source_dir.mkdir(parents=True, exist_ok=True)
+
+        with pytest.raises(ValueError, match="Icon file does not exist"):
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_icon_file_is_absolute_path(self, tmp_path: Path) -> None:
+        """Test that ValueError is raised when icon file is absolute."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dependencies": [],
+            },
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src",
+                    "icon_file_rel_path": "C:/absolute/path/icon.ico",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": True,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        source_dir = tmp_path / "src"
+        source_dir.mkdir(parents=True, exist_ok=True)
+
+        with pytest.raises(ValueError, match="Icon file must be relative"):
+            BuildConfig.from_pyproject_toml(pyproject_path)

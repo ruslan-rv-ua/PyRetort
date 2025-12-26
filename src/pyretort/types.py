@@ -85,6 +85,72 @@ class BuildConfig(BaseModel):
 
         return v
 
+    @field_validator("python_architecture", mode="before")
+    @classmethod
+    def validate_architecture(cls, v: str) -> PythonArchitecture:
+        """Validate python_architecture value."""
+        if v is None:
+            raise ValueError(
+                "python_architecture is required. "
+                f"Valid values: {', '.join(a.value for a in PythonArchitecture)}"
+            )
+        try:
+            return PythonArchitecture(v.lower())
+        except ValueError:
+            valid = [a.value for a in PythonArchitecture]
+            raise ValueError(
+                f"Invalid python_architecture: '{v}'. Valid values: {', '.join(valid)}"
+            )
+
+    @field_validator("build_backend", mode="before")
+    @classmethod
+    def validate_build_backend(cls, v: str) -> BuildBackend:
+        """Validate build_backend value."""
+        if v is None:
+            raise ValueError(
+                "build-backend is required in [build-system] section. "
+                f"Valid values: {', '.join(b.value for b in BuildBackend)}"
+            )
+        try:
+            return BuildBackend(v)
+        except ValueError:
+            valid = [b.value for b in BuildBackend]
+            raise ValueError(
+                f"Invalid build-backend: '{v}'. Valid values: {', '.join(valid)}"
+            )
+
+    @field_validator("project_source_subdir_rel_path")
+    @classmethod
+    def validate_source_subdir(cls, v: Path) -> Path:
+        """Validate that the source subdirectory is relative."""
+        if v.is_absolute():
+            raise ValueError(f"Source subdirectory must be relative: {v}")
+        return v
+
+    @field_validator("main_file_rel_path")
+    @classmethod
+    def validate_main_file(cls, v: Path | None) -> Path | None:
+        """Validate that the main file is relative."""
+        if v is None:
+            return v
+
+        if v.is_absolute():
+            raise ValueError(f"Main file must be relative: {v}")
+
+        return v
+
+    @field_validator("icon_file_rel_path")
+    @classmethod
+    def validate_icon_file(cls, v: Path | None) -> Path | None:
+        """Validate that the icon file is relative."""
+        if v is None:
+            return v
+
+        if v.is_absolute():
+            raise ValueError(f"Icon file must be relative: {v}")
+
+        return v
+
     @computed_field
     @property
     def python_version_short(self) -> str:
@@ -135,10 +201,42 @@ class BuildConfig(BaseModel):
         with open(pyproject_path, "rb") as f:
             data = tomllib.load(f)
 
-        # Get project metadata
-        project = data.get("project", {})
-        tool_pyretort = data.get("tool", {}).get("pyretort", {})
+        # Validate [project] section
+        project = data.get("project")
+        if not project:
+            raise ValueError("Missing [project] section in pyproject.toml")
+
+        if "name" not in project:
+            raise ValueError("Missing 'name' field in [project] section")
+
+        if "version" not in project:
+            raise ValueError("Missing 'version' field in [project] section")
+
+        # Validate [tool.pyretort] section
+        tool_pyretort = data.get("tool", {}).get("pyretort")
+        if not tool_pyretort:
+            raise ValueError(
+                "Missing [tool.pyretort] section in pyproject.toml. "
+                "Run 'pyretort init' to create it."
+            )
+
+        # Validate required fields in [tool.pyretort]
+        required_pyretort_fields = [
+            "python_version",
+            "python_architecture",
+            "project_source_subdir",
+        ]
+        for field in required_pyretort_fields:
+            if field not in tool_pyretort:
+                raise ValueError(f"Missing '{field}' in [tool.pyretort] section")
+
+        # Validate [build-system] section
         build_system = data.get("build-system", {})
+        if not build_system:
+            raise ValueError("Missing [build-system] section in pyproject.toml")
+
+        if "build-backend" not in build_system:
+            raise ValueError("Missing 'build-backend' field in [build-system] section")
 
         # Determine project directory (parent of pyproject.toml)
         project_dir = pyproject_path.parent.absolute()
@@ -148,13 +246,64 @@ class BuildConfig(BaseModel):
 
         # Get python version and architecture for hash calculation
         python_version = tool_pyretort.get("python_version")
-        python_architecture = PythonArchitecture(
-            tool_pyretort.get("python_architecture")
-        )
+        python_architecture_str = tool_pyretort.get("python_architecture")
+        try:
+            python_architecture = PythonArchitecture(python_architecture_str)
+        except ValueError as e:
+            valid = [a.value for a in PythonArchitecture]
+            raise ValueError(
+                f"Invalid python_architecture: '{python_architecture_str}'. "
+                f"Valid values: {', '.join(valid)}"
+            ) from e
 
         # Calculate build_hash based on python version, architecture, and dependencies
         hash_data = f"{python_version}|{python_architecture.value}|{'|'.join(sorted(dependencies))}"
         build_hash = sha256(hash_data.encode()).hexdigest()
+
+        # Validate source subdirectory
+        source_subdir = Path(tool_pyretort.get("project_source_subdir"))
+        if source_subdir.is_absolute():
+            raise ValueError(f"Source subdirectory must be relative: {source_subdir}")
+        full_source_path = project_dir / source_subdir
+        if not full_source_path.exists():
+            raise ValueError(f"Source subdirectory does not exist: {full_source_path}")
+        if not full_source_path.is_dir():
+            raise ValueError(f"Source path is not a directory: {full_source_path}")
+
+        # Validate main file exists if specified
+        main_file_rel_path = None
+        if "main_file" in tool_pyretort:
+            main_file_rel_path = Path(tool_pyretort["main_file"])
+            if main_file_rel_path.is_absolute():
+                raise ValueError(f"Main file must be relative: {main_file_rel_path}")
+            full_main_path = full_source_path / main_file_rel_path
+            if not full_main_path.exists():
+                raise ValueError(f"Main file does not exist: {full_main_path}")
+            if not full_main_path.is_file():
+                raise ValueError(f"Main path is not a file: {full_main_path}")
+
+        # Validate icon file exists if specified
+        icon_file_rel_path = None
+        if "icon_file_rel_path" in tool_pyretort:
+            icon_file_rel_path = Path(tool_pyretort["icon_file_rel_path"])
+            if icon_file_rel_path.is_absolute():
+                raise ValueError(f"Icon file must be relative: {icon_file_rel_path}")
+            full_icon_path = project_dir / icon_file_rel_path
+            if not full_icon_path.exists():
+                raise ValueError(f"Icon file does not exist: {full_icon_path}")
+            if not full_icon_path.is_file():
+                raise ValueError(f"Icon path is not a file: {full_icon_path}")
+
+        # Validate build backend
+        build_backend_str = build_system.get("build-backend")
+        try:
+            build_backend = BuildBackend(build_backend_str)
+        except ValueError as e:
+            valid = [b.value for b in BuildBackend]
+            raise ValueError(
+                f"Invalid build-backend: '{build_backend_str}'. "
+                f"Valid values: {', '.join(valid)}"
+            ) from e
 
         # Extract configuration with defaults
         config_data = {
@@ -162,23 +311,13 @@ class BuildConfig(BaseModel):
             "project_dir_abs_path": project_dir,
             "project_name": project.get("name"),
             "project_version": project.get("version"),
-            "project_source_subdir_rel_path": Path(
-                tool_pyretort.get("project_source_subdir")
-            ),
-            "main_file_rel_path": (
-                Path(tool_pyretort["main_file"])
-                if "main_file" in tool_pyretort
-                else None
-            ),
+            "project_source_subdir_rel_path": source_subdir,
+            "main_file_rel_path": main_file_rel_path,
             "install_as_package": tool_pyretort.get("install_as_package"),
             "python_version": python_version,
             "python_architecture": python_architecture,
-            "build_backend": BuildBackend(build_system.get("build-backend")),
-            "icon_file_rel_path": (
-                Path(tool_pyretort["icon_file_rel_path"])
-                if "icon_file_rel_path" in tool_pyretort
-                else None
-            ),
+            "build_backend": build_backend,
+            "icon_file_rel_path": icon_file_rel_path,
             "show_console_window": tool_pyretort.get("show_console_window"),
             "create_dist_zip_file": tool_pyretort.get("create_dist_zip_file"),
         }

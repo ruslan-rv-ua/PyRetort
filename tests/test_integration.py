@@ -99,7 +99,10 @@ class TestCLIWorkflow:
             "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
         }
         pyproject.write_bytes(tomli_w.dumps(data).encode())
-        (tmp_path / "src" / "workflow_test").mkdir(parents=True)
+        source_dir = tmp_path / "src" / "workflow_test"
+        source_dir.mkdir(parents=True)
+        # Create main.py file that init command will find
+        (source_dir / "main.py").write_text("print('hello')")
 
         init_result = runner.invoke(app, ["init", "-p", str(pyproject)])
         assert init_result.exit_code == 0
