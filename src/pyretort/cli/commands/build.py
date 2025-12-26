@@ -22,7 +22,7 @@ def build_command(
     try:
         config = BuildConfig.from_pyproject_toml(pyproject_toml)
     except Exception as e:
-        typer.echo(f"Error loading configuration from {config}: {e}", err=True)
+        typer.echo(f"Error loading configuration from {pyproject_toml}: {e}", err=True)
         raise typer.Exit(1)
 
     match config.build_backend:
