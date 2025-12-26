@@ -1,0 +1,18 @@
+[project]
+name = "hatchling-app"
+version = "0.5.0"
+description = "An app using hatchling build backend"
+dependencies = ["rich>=13.0.0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pyretort]
+project_source_subdir = "src/hatchling_app"
+main_file = "app.py"
+install_as_package = true
+python_version = "3.12.0"
+python_architecture = "win32"
+show_console_window = true
+create_dist_zip_file = false

@@ -1,0 +1,401 @@
+"""Tests for pyretort.types module."""
+
+from pathlib import Path
+
+import pytest
+
+from pyretort.types import (
+    MIN_PYTHON_VERSION,
+    BuildBackend,
+    BuildConfig,
+    PythonArchitecture,
+)
+
+
+class TestPythonArchitecture:
+    """Tests for PythonArchitecture enum."""
+
+    def test_amd64_value(self) -> None:
+        assert PythonArchitecture.AMD64 == "amd64"
+        assert PythonArchitecture.AMD64.value == "amd64"
+
+    def test_win32_value(self) -> None:
+        assert PythonArchitecture.WIN32 == "win32"
+        assert PythonArchitecture.WIN32.value == "win32"
+
+    def test_arm64_value(self) -> None:
+        assert PythonArchitecture.ARM64 == "arm64"
+        assert PythonArchitecture.ARM64.value == "arm64"
+
+    def test_all_architectures(self) -> None:
+        expected = {"amd64", "win32", "arm64"}
+        actual = {arch.value for arch in PythonArchitecture}
+        assert actual == expected
+
+    def test_from_string(self) -> None:
+        assert PythonArchitecture("amd64") == PythonArchitecture.AMD64
+        assert PythonArchitecture("win32") == PythonArchitecture.WIN32
+        assert PythonArchitecture("arm64") == PythonArchitecture.ARM64
+
+
+class TestBuildBackend:
+    """Tests for BuildBackend enum."""
+
+    def test_uv_value(self) -> None:
+        assert BuildBackend.UV == "uv_build"
+        assert BuildBackend.UV.value == "uv_build"
+
+    def test_hatchling_value(self) -> None:
+        assert BuildBackend.HATCHLING == "hatchling.build"
+        assert BuildBackend.HATCHLING.value == "hatchling.build"
+
+    def test_from_string(self) -> None:
+        assert BuildBackend("uv_build") == BuildBackend.UV
+        assert BuildBackend("hatchling.build") == BuildBackend.HATCHLING
+
+
+class TestBuildConfig:
+    """Tests for BuildConfig model."""
+
+    def test_valid_config_creation(self, sample_build_config: BuildConfig) -> None:
+        """Test creating a valid BuildConfig."""
+        assert sample_build_config.project_name == "test-project"
+        assert sample_build_config.project_version == "1.0.0"
+        assert sample_build_config.python_version == "3.11.0"
+        assert sample_build_config.python_architecture == PythonArchitecture.AMD64
+
+    def test_python_version_validation_valid_311(self) -> None:
+        """Test that Python 3.11.x passes validation."""
+        config = BuildConfig(
+            build_hash="test123",
+            project_dir_abs_path=Path("."),
+            project_name="test",
+            project_version="1.0.0",
+            project_source_subdir_rel_path=Path("src"),
+            python_version="3.11.0",
+            python_architecture=PythonArchitecture.AMD64,
+            build_backend=BuildBackend.UV,
+            create_dist_zip_file=False,
+        )
+        assert config.python_version == "3.11.0"
+
+    def test_python_version_validation_valid_313(self) -> None:
+        """Test that Python 3.13.x passes validation."""
+        config = BuildConfig(
+            build_hash="test123",
+            project_dir_abs_path=Path("."),
+            project_name="test",
+            project_version="1.0.0",
+            project_source_subdir_rel_path=Path("src"),
+            python_version="3.13.1",
+            python_architecture=PythonArchitecture.AMD64,
+            build_backend=BuildBackend.UV,
+            create_dist_zip_file=False,
+        )
+        assert config.python_version == "3.13.1"
+
+    def test_python_version_validation_invalid_310(self) -> None:
+        """Test that Python 3.10.x fails validation."""
+        with pytest.raises(
+            ValueError, match=f"Python version must be >= {MIN_PYTHON_VERSION}"
+        ):
+            BuildConfig(
+                build_hash="test123",
+                project_dir_abs_path=Path("."),
+                project_name="test",
+                project_version="1.0.0",
+                project_source_subdir_rel_path=Path("src"),
+                python_version="3.10.0",
+                python_architecture=PythonArchitecture.AMD64,
+                build_backend=BuildBackend.UV,
+                create_dist_zip_file=False,
+            )
+
+    def test_python_version_validation_invalid_27(self) -> None:
+        """Test that Python 2.7 fails validation."""
+        with pytest.raises(
+            ValueError, match=f"Python version must be >= {MIN_PYTHON_VERSION}"
+        ):
+            BuildConfig(
+                build_hash="test123",
+                project_dir_abs_path=Path("."),
+                project_name="test",
+                project_version="1.0.0",
+                project_source_subdir_rel_path=Path("src"),
+                python_version="2.7.18",
+                python_architecture=PythonArchitecture.AMD64,
+                build_backend=BuildBackend.UV,
+                create_dist_zip_file=False,
+            )
+
+    def test_python_version_validation_invalid_format(self) -> None:
+        """Test that invalid version format fails validation."""
+        with pytest.raises(ValueError, match="Invalid Python version format"):
+            BuildConfig(
+                build_hash="test123",
+                project_dir_abs_path=Path("."),
+                project_name="test",
+                project_version="1.0.0",
+                project_source_subdir_rel_path=Path("src"),
+                python_version="not.a.version",
+                python_architecture=PythonArchitecture.AMD64,
+                build_backend=BuildBackend.UV,
+                create_dist_zip_file=False,
+            )
+
+    def test_python_version_short_311(self) -> None:
+        """Test python_version_short computed field for 3.11."""
+        config = BuildConfig(
+            build_hash="test123",
+            project_dir_abs_path=Path("."),
+            project_name="test",
+            project_version="1.0.0",
+            project_source_subdir_rel_path=Path("src"),
+            python_version="3.11.9",
+            python_architecture=PythonArchitecture.AMD64,
+            build_backend=BuildBackend.UV,
+            create_dist_zip_file=False,
+        )
+        assert config.python_version_short == "311"
+
+    def test_python_version_short_313(self) -> None:
+        """Test python_version_short computed field for 3.13."""
+        config = BuildConfig(
+            build_hash="test123",
+            project_dir_abs_path=Path("."),
+            project_name="test",
+            project_version="1.0.0",
+            project_source_subdir_rel_path=Path("src"),
+            python_version="3.13.1",
+            python_architecture=PythonArchitecture.AMD64,
+            build_backend=BuildBackend.UV,
+            create_dist_zip_file=False,
+        )
+        assert config.python_version_short == "313"
+
+    def test_project_name_slug_underscore(self) -> None:
+        """Test project_name_slug_underscore computed field."""
+        config = BuildConfig(
+            build_hash="test123",
+            project_dir_abs_path=Path("."),
+            project_name="My Test Project",
+            project_version="1.0.0",
+            project_source_subdir_rel_path=Path("src"),
+            python_version="3.13.0",
+            python_architecture=PythonArchitecture.AMD64,
+            build_backend=BuildBackend.UV,
+            create_dist_zip_file=False,
+        )
+        assert config.project_name_slug_underscore == "my_test_project"
+
+    def test_project_name_slug_dash(self) -> None:
+        """Test project_name_slug_dash computed field."""
+        config = BuildConfig(
+            build_hash="test123",
+            project_dir_abs_path=Path("."),
+            project_name="My Test Project",
+            project_version="1.0.0",
+            project_source_subdir_rel_path=Path("src"),
+            python_version="3.13.0",
+            python_architecture=PythonArchitecture.AMD64,
+            build_backend=BuildBackend.UV,
+            create_dist_zip_file=False,
+        )
+        assert config.project_name_slug_dash == "my-test-project"
+
+    def test_dist_name(self) -> None:
+        """Test dist_name computed field."""
+        config = BuildConfig(
+            build_hash="test123",
+            project_dir_abs_path=Path("."),
+            project_name="My App",
+            project_version="2.1.0",
+            project_source_subdir_rel_path=Path("src"),
+            python_version="3.13.0",
+            python_architecture=PythonArchitecture.AMD64,
+            build_backend=BuildBackend.UV,
+            create_dist_zip_file=False,
+        )
+        assert config.dist_name == "my-app-2.1.0-amd64"
+
+    def test_dist_name_with_win32(self) -> None:
+        """Test dist_name with win32 architecture."""
+        config = BuildConfig(
+            build_hash="test123",
+            project_dir_abs_path=Path("."),
+            project_name="test-app",
+            project_version="1.0.0",
+            project_source_subdir_rel_path=Path("src"),
+            python_version="3.11.0",
+            python_architecture=PythonArchitecture.WIN32,
+            build_backend=BuildBackend.UV,
+            create_dist_zip_file=False,
+        )
+        assert config.dist_name == "test-app-1.0.0-win32"
+
+    def test_optional_fields_default_none(self) -> None:
+        """Test that optional fields default to None."""
+        config = BuildConfig(
+            build_hash="test123",
+            project_dir_abs_path=Path("."),
+            project_name="test",
+            project_version="1.0.0",
+            project_source_subdir_rel_path=Path("src"),
+            python_version="3.11.0",
+            python_architecture=PythonArchitecture.AMD64,
+            build_backend=BuildBackend.UV,
+            create_dist_zip_file=False,
+        )
+        assert config.main_file_rel_path is None
+        assert config.icon_file_rel_path is None
+
+    def test_optional_fields_with_values(self) -> None:
+        """Test optional fields when provided."""
+        config = BuildConfig(
+            build_hash="test123",
+            project_dir_abs_path=Path("."),
+            project_name="test",
+            project_version="1.0.0",
+            project_source_subdir_rel_path=Path("src"),
+            main_file_rel_path=Path("main.py"),
+            icon_file_rel_path=Path("icon.ico"),
+            python_version="3.11.0",
+            python_architecture=PythonArchitecture.AMD64,
+            build_backend=BuildBackend.UV,
+            create_dist_zip_file=False,
+        )
+        assert config.main_file_rel_path == Path("main.py")
+        assert config.icon_file_rel_path == Path("icon.ico")
+
+    def test_install_as_package_default(self) -> None:
+        """Test install_as_package default value."""
+        config = BuildConfig(
+            build_hash="test123",
+            project_dir_abs_path=Path("."),
+            project_name="test",
+            project_version="1.0.0",
+            project_source_subdir_rel_path=Path("src"),
+            python_version="3.11.0",
+            python_architecture=PythonArchitecture.AMD64,
+            build_backend=BuildBackend.UV,
+            create_dist_zip_file=False,
+        )
+        assert config.install_as_package is True
+
+    def test_show_console_window_default(self) -> None:
+        """Test show_console_window default value."""
+        config = BuildConfig(
+            build_hash="test123",
+            project_dir_abs_path=Path("."),
+            project_name="test",
+            project_version="1.0.0",
+            project_source_subdir_rel_path=Path("src"),
+            python_version="3.11.0",
+            python_architecture=PythonArchitecture.AMD64,
+            build_backend=BuildBackend.UV,
+            create_dist_zip_file=False,
+        )
+        assert config.show_console_window is False
+
+
+class TestBuildConfigFromPyprojectToml:
+    """Tests for BuildConfig.from_pyproject_toml class method."""
+
+    def test_from_valid_pyproject_toml(self, valid_pyproject_toml: Path) -> None:
+        """Test creating BuildConfig from a valid pyproject.toml."""
+        config = BuildConfig.from_pyproject_toml(valid_pyproject_toml)
+
+        assert config.project_name == "test-app"
+        assert config.project_version == "0.1.0"
+        assert config.python_version == "3.13.0"
+        assert config.python_architecture == PythonArchitecture.AMD64
+        assert config.build_backend == BuildBackend.UV
+        assert config.create_dist_zip_file is True
+        assert config.show_console_window is False
+        assert config.install_as_package is True
+        assert config.project_source_subdir_rel_path == Path("src/test_app")
+
+    def test_from_nonexistent_file(self, tmp_path: Path) -> None:
+        """Test that FileNotFoundError is raised for non-existent file."""
+        nonexistent = tmp_path / "nonexistent.toml"
+        with pytest.raises(FileNotFoundError, match="File not found"):
+            BuildConfig.from_pyproject_toml(nonexistent)
+
+    def test_from_pyproject_toml_with_old_python(
+        self, invalid_pyproject_old_python: Path
+    ) -> None:
+        """Test that ValueError is raised for Python < 3.11."""
+        with pytest.raises(
+            ValueError, match=f"Python version must be >= {MIN_PYTHON_VERSION}"
+        ):
+            BuildConfig.from_pyproject_toml(invalid_pyproject_old_python)
+
+    def test_from_pyproject_toml_accepts_path_string(
+        self, valid_pyproject_toml: Path
+    ) -> None:
+        """Test that from_pyproject_toml accepts string paths."""
+        config = BuildConfig.from_pyproject_toml(str(valid_pyproject_toml))
+        assert config.project_name == "test-app"
+
+    def test_build_hash_is_generated(self, valid_pyproject_toml: Path) -> None:
+        """Test that build_hash is properly generated."""
+        config = BuildConfig.from_pyproject_toml(valid_pyproject_toml)
+        assert config.build_hash is not None
+        assert len(config.build_hash) == 64  # SHA256 hex digest length
+
+    def test_build_hash_changes_with_dependencies(self, tmp_path: Path) -> None:
+        """Test that build_hash changes when dependencies change."""
+        import tomli_w
+
+        data1 = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dependencies": ["httpx>=0.27.0"],
+            },
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": True,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+
+        data2 = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dependencies": ["httpx>=0.27.0", "requests>=2.0.0"],
+            },
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": True,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+
+        p1 = tmp_path / "proj1" / "pyproject.toml"
+        p1.parent.mkdir()
+        (p1.parent / "src").mkdir()
+        p1.write_bytes(tomli_w.dumps(data1).encode())
+
+        p2 = tmp_path / "proj2" / "pyproject.toml"
+        p2.parent.mkdir()
+        (p2.parent / "src").mkdir()
+        p2.write_bytes(tomli_w.dumps(data2).encode())
+
+        config1 = BuildConfig.from_pyproject_toml(p1)
+        config2 = BuildConfig.from_pyproject_toml(p2)
+
+        assert config1.build_hash != config2.build_hash
