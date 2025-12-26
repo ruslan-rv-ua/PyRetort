@@ -5,7 +5,7 @@ from enum import StrEnum
 from hashlib import sha256
 from pathlib import Path
 
-from packaging.version import Version
+from packaging.version import InvalidVersion, Version
 from pydantic import BaseModel, computed_field, field_validator
 from slugify import slugify
 
@@ -79,7 +79,7 @@ class BuildConfig(BaseModel):
         try:
             current_version = Version(v)
             min_version = Version(MIN_PYTHON_VERSION)
-        except Exception as e:
+        except InvalidVersion as e:
             raise ValueError(f"Invalid Python version format: {v}") from e
 
         if current_version < min_version:

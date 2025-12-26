@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import tomllib
 from pathlib import Path
 
 import typer
@@ -23,8 +24,14 @@ def build_command(
     """Build a distributable package based on configuration."""
     try:
         config = BuildConfig.from_pyproject_toml(pyproject_toml)
-    except Exception as e:
-        typer.echo(f"Error loading configuration from {pyproject_toml}: {e}", err=True)
+    except FileNotFoundError:
+        typer.echo(f"Configuration file not found: {pyproject_toml}", err=True)
+        raise typer.Exit(1)
+    except tomllib.TOMLDecodeError as e:
+        typer.echo(f"Invalid TOML syntax in {pyproject_toml}: {e}", err=True)
+        raise typer.Exit(1)
+    except ValueError as e:
+        typer.echo(f"Invalid configuration: {e}", err=True)
         raise typer.Exit(1)
 
     match config.build_backend:
