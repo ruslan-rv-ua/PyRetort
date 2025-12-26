@@ -3,6 +3,7 @@ name = "pyretort"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
+license = {text = "MIT"}
 authors = [
     { name = "Ruslan Iskov", email = "ruslan.rv.ua+github@gmail.com" }
 ]
@@ -48,4 +49,5 @@ markers = [
 
 [tool.uv.workspace]
 members = []
+
 
