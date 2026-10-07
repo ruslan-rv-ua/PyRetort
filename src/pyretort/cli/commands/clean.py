@@ -49,22 +49,14 @@ def cleanup_command(
         raise typer.Exit(1)
 
     lower_targets = {target.lower() for target in targets}
-    do_cache = "cache" in lower_targets
-    do_build = "build" in lower_targets
-    do_all = "all" in lower_targets
-
-    if do_all:
-        do_cache = True
-        do_build = True
+    do_cache = "cache" in lower_targets or "all" in lower_targets
+    do_build = "build" in lower_targets or "all" in lower_targets
 
     if do_cache:
         _cleanup_cache(ctx)
 
     if do_build:
         _cleanup_build(ctx)
-
-    if do_all:
-        _cleanup_config(ctx)
 
     echo(ctx, "Cleanup complete.")
 
