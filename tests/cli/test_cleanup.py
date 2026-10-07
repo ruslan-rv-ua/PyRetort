@@ -15,15 +15,21 @@ ARTIFACT_DIRS = ("downloads", "build", "dist")
 
 
 @pytest.fixture
-def bare_project(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Create a project without artifacts and run from another directory."""
-    project_dir = tmp_path / "project"
-    project_dir.mkdir()
-    (project_dir / "pyproject.toml").write_text("", encoding="utf-8")
-
+def cwd_elsewhere(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Switch the current directory to one outside the project."""
     elsewhere = tmp_path / "elsewhere"
     elsewhere.mkdir()
     monkeypatch.chdir(elsewhere)
+
+    return elsewhere
+
+
+@pytest.fixture
+def bare_project(tmp_path: Path) -> Path:
+    """Create a project with an empty pyproject.toml and no artifact directories."""
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+    (project_dir / "pyproject.toml").write_text("", encoding="utf-8")
 
     return project_dir
 
@@ -43,8 +49,9 @@ def remaining_artifact_dirs(project_dir: Path) -> set[str]:
     return {name for name in ARTIFACT_DIRS if (project_dir / name).exists()}
 
 
+@pytest.mark.usefixtures("cwd_elsewhere")
 class TestCleanupCommand:
-    """Tests for the cleanup command."""
+    """Tests for the cleanup command, run from outside the project directory."""
 
     def test_cleanup_cache_removes_only_downloads_dir(self, project: Path) -> None:
         """Test that 'cache' removes only downloads/ of the given project."""
