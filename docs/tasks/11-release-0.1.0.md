@@ -9,6 +9,7 @@
 ## Контекст
 
 - Версія в `pyproject.toml` уже `0.1.0`; тегів у репозиторії немає; гілка `develop` — єдина і за замовчуванням.
+- Задачі ведуться у feature-гілках git flow (див. [README.md](README.md)). `git flow release` і `hotfix` спираються на гілку `main`, якої немає, тому план нижче ставить тег без `git flow release`. Реліз через `git flow release` можливий, лише якщо користувач вирішить створити `main`.
 - uv 0.12.x має `uv version` (читання і зміна версії, `--bump`, `--dry-run`), `uv build` (створює `dist/*.whl` і `dist/*.tar.gz`; `--no-sources` рекомендується перед публікацією) і `uv publish` (токен через `--token`/`UV_PUBLISH_TOKEN` або trusted publishing).
 - Перевірка колеса без встановлення в проєкт: `uv run --no-project --with <шлях до .whl> -- pyretort version`; встановлення як інструмента: `uv tool install <шлях до .whl>`.
 - `dist/` у корені ігнорується git.
@@ -28,7 +29,7 @@
 3. `Remove-Item -Recurse -Force dist -ErrorAction SilentlyContinue; uv build --no-sources`.
 4. Перевірка колеса з чужої теки: `uv run --no-project --with "<repo>\dist\pyretort-0.1.0-py3-none-any.whl" -- pyretort version` → `PyRetort 0.1.0`; `uv tool install "<repo>\dist\pyretort-0.1.0-py3-none-any.whl"` → `pyretort build -p examples/hello-cli/pyproject.toml` працює без `uv run`; потім `uv tool uninstall pyretort`.
 5. `git tag -a v0.1.0 -m "PyRetort 0.1.0"`.
-6. Спитати користувача про `git push --follow-tags` і реліз на GitHub; виконати після згоди. Опційно PyPI (пункт 4 рішень).
+6. Спитати користувача про злиття гілки задачі в `develop`, `git push --follow-tags` і реліз на GitHub; виконати після згоди. Опційно PyPI (пункт 4 рішень).
 
 ## Критерій завершення
 

@@ -36,7 +36,7 @@ uv run mypy src
 
 Усі чотири команди завершуються без помилок. До виконання задачі 02 ruff і mypy мають відомі помилки (8 і 12); вимога для задач, виконаних раніше за 02, — не додати нових.
 
-**Коміти.** Conventional Commits (див. AGENTS.md), маленькі, по одному на логічну зміну, у поточну гілку `develop`. `git push` — лише на прохання користувача.
+**Гілки й коміти.** Кожна задача — у власній feature-гілці від `develop` в основному checkout (не у worktree): `git flow feature start NN-назва`, де `NN-назва` — ім'я файлу задачі без `.md`. Якщо в клоні git flow ще не ініціалізовано, спершу виконай `git flow init --defaults --no-create-branches` — так у репозиторії лишається тільки `develop`, без гілки `main`. Коміти — Conventional Commits (див. AGENTS.md), маленькі, по одному на логічну зміну. Злиття в `develop` (`git flow feature finish --no-ff --no-push NN-назва`) і `git push` — лише на прохання користувача.
 
 ## Задачі
 
