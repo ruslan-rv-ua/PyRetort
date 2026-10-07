@@ -117,10 +117,6 @@ DEFAULT_BLACKLIST = [
     ".gradle",
     # === Documentation ===
     "docs/_build",
-    # === Kilocode ===
-    "kilocode",
-    "kilocode.*",
-    ".kilocode",
     # === Misc ===
     "*.log",
     "*.orig",
