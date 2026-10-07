@@ -42,7 +42,7 @@ uv run mypy src
 
 | № | Файл | Суть | Залежить від | Статус |
 |---|------|------|--------------|--------|
-| 01 | [01-cleanup-command.md](01-cleanup-command.md) | Тести для `cleanup`, необов'язкові цілі, шляхи відносно проєкту | — | TODO |
+| 01 | [01-cleanup-command.md](01-cleanup-command.md) | Тести для `cleanup`, необов'язкові цілі, шляхи відносно проєкту | — | DONE |
 | 02 | [02-lint-and-types.md](02-lint-and-types.md) | ruff і mypy без помилок, конфігурація інструментів, прибрати debug print | — | TODO |
 | 03 | [03-upgrade-dependencies.md](03-upgrade-dependencies.md) | Оновити залежності до актуальних версій | 02 | TODO |
 | 04 | [04-config-semantics.md](04-config-semantics.md) | Чесна конфігурація: модуль запуску, будь-який build-backend, зрозуміла відмова standalone, `init --force` | 03 | TODO |

@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import shutil
 from pathlib import Path
-from typing import List
+from typing import Annotated
 
 import typer
-from typing_extensions import Annotated
 
 from pyretort.cli._output import echo
 from pyretort.constants import (
@@ -17,18 +16,15 @@ from pyretort.constants import (
 VALID_TARGETS = ["cache", "build", "all"]
 
 
-def complete_cleanup_targets(incomplete: str) -> list[str]:
-    """Provide completion for cleanup targets."""
-    return [target for target in VALID_TARGETS if target.startswith(incomplete.lower())]
-
-
 def cleanup_command(
     ctx: typer.Context,
     targets: Annotated[
-        List[str] | None,
+        list[str] | None,
         typer.Argument(
-            help="The artifacts to clean. Can be 'cache', 'build', or 'all'.",
-            autocompletion=complete_cleanup_targets,
+            help=(
+                "What to remove: 'cache' (downloads/), 'build' (build/ and dist/) "
+                "or 'all'. Defaults to 'all'."
+            ),
         ),
     ] = None,
     pyproject_toml: Annotated[
@@ -36,11 +32,18 @@ def cleanup_command(
         typer.Option(
             "--pyproject-toml",
             "-p",
-            help="Path to the pyproject.toml of the project to clean.",
+            help=(
+                "Path to the pyproject.toml of the project to clean. "
+                "Defaults to pyproject.toml in the current directory."
+            ),
         ),
     ] = None,
 ) -> None:
-    """Remove build artifacts that PyRetort produced."""
+    """Remove build artifacts that PyRetort produced.
+
+    Artifact directories are looked up next to pyproject.toml, not in the
+    current directory.
+    """
     if pyproject_toml is None:
         pyproject_toml = Path.cwd() / "pyproject.toml"
     pyproject_toml = pyproject_toml.resolve()
@@ -82,19 +85,6 @@ def _cleanup_dir(ctx: typer.Context, path: Path, description: str) -> None:
     if path.exists():
         try:
             shutil.rmtree(path)
-            echo(ctx, f"Removed {description}: {path}")
-        except OSError as e:
-            echo(ctx, f"Error removing {description} '{path}': {e}", err=True)
-    else:
-        echo(ctx, f"{description} not found: {path}")
-
-
-def _cleanup_file(ctx: typer.Context, file_path: str, description: str) -> None:
-    """Remove a file if it exists."""
-    path = Path(file_path)
-    if path.exists():
-        try:
-            path.unlink()
             echo(ctx, f"Removed {description}: {path}")
         except OSError as e:
             echo(ctx, f"Error removing {description} '{path}': {e}", err=True)
