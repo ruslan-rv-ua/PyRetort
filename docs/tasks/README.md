@@ -34,7 +34,7 @@ uv run ruff format --check src tests
 uv run mypy src
 ```
 
-Усі чотири команди завершуються без помилок. До виконання задачі 02 ruff і mypy мають відомі помилки (8 і 12); вимога для задачі 01 — не додати нових.
+Усі чотири команди завершуються без помилок. До виконання задачі 02 ruff і mypy мають відомі помилки (8 і 12); вимога для задач, виконаних раніше за 02, — не додати нових.
 
 **Коміти.** Conventional Commits (див. AGENTS.md), маленькі, по одному на логічну зміну, у поточну гілку `develop`. `git push` — лише на прохання користувача.
 
@@ -52,8 +52,9 @@ uv run mypy src
 | 08 | [08-ci.md](08-ci.md) | GitHub Actions на windows-latest | 03 | TODO |
 | 09 | [09-readme-and-metadata.md](09-readme-and-metadata.md) | README, CHANGELOG, метадані пакета, подяка gen-exe | 06 | TODO |
 | 10 | [10-examples.md](10-examples.md) | Приклади: прибрати застарілі, додати hello-cli | 04 | TODO |
-| 11 | [11-release-0.1.0.md](11-release-0.1.0.md) | Реліз 0.1.0: тег, колесо, перевірка встановлення | 07, 08, 09, 10 | TODO |
+| 11 | [11-release-0.1.0.md](11-release-0.1.0.md) | Реліз 0.1.0: тег, колесо, перевірка встановлення | 07, 08, 09, 10, 13 | TODO |
 | 12 | [12-standalone-mode.md](12-standalone-mode.md) | Після 0.1: режим без встановлення пакета | 11 | TODO |
+| 13 | [13-cleanup-errors.md](13-cleanup-errors.md) | `cleanup`: код 1, коли теку не вдалося видалити | 01 | TODO |
 
 ## Ідеї після 0.1 без специфікації
 
