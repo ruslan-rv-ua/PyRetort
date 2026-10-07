@@ -25,14 +25,30 @@ def complete_cleanup_targets(incomplete: str) -> list[str]:
 def cleanup_command(
     ctx: typer.Context,
     targets: Annotated[
-        List[str],
+        List[str] | None,
         typer.Argument(
             help="The artifacts to clean. Can be 'cache', 'build', or 'all'.",
             autocompletion=complete_cleanup_targets,
         ),
-    ],
+    ] = None,
+    pyproject_toml: Annotated[
+        Path | None,
+        typer.Option(
+            "--pyproject-toml",
+            "-p",
+            help="Path to the pyproject.toml of the project to clean.",
+        ),
+    ] = None,
 ) -> None:
     """Remove build artifacts that PyRetort produced."""
+    if pyproject_toml is None:
+        pyproject_toml = Path.cwd() / "pyproject.toml"
+    pyproject_toml = pyproject_toml.resolve()
+    if not pyproject_toml.is_file():
+        echo(ctx, f"Configuration file not found: {pyproject_toml}", err=True)
+        raise typer.Exit(1)
+    project_dir = pyproject_toml.parent
+
     if not targets:
         targets = ["all"]
 
@@ -53,17 +69,16 @@ def cleanup_command(
     do_build = "build" in lower_targets or "all" in lower_targets
 
     if do_cache:
-        _cleanup_cache(ctx)
+        _cleanup_cache(ctx, project_dir)
 
     if do_build:
-        _cleanup_build(ctx)
+        _cleanup_build(ctx, project_dir)
 
     echo(ctx, "Cleanup complete.")
 
 
-def _cleanup_dir(ctx: typer.Context, dir_path: str, description: str) -> None:
+def _cleanup_dir(ctx: typer.Context, path: Path, description: str) -> None:
     """Remove a directory if it exists."""
-    path = Path(dir_path)
     if path.exists():
         try:
             shutil.rmtree(path)
@@ -87,12 +102,12 @@ def _cleanup_file(ctx: typer.Context, file_path: str, description: str) -> None:
         echo(ctx, f"{description} not found: {path}")
 
 
-def _cleanup_cache(ctx: typer.Context) -> None:
+def _cleanup_cache(ctx: typer.Context, project_dir: Path) -> None:
     """Clean up the cache directory."""
-    _cleanup_dir(ctx, DOWNLOAD_DIR_DEFAULT, "cache directory")
+    _cleanup_dir(ctx, project_dir / DOWNLOAD_DIR_DEFAULT, "cache directory")
 
 
-def _cleanup_build(ctx: typer.Context) -> None:
+def _cleanup_build(ctx: typer.Context, project_dir: Path) -> None:
     """Clean up the build and dist directories."""
-    _cleanup_dir(ctx, BUILD_DIR_DEFAULT, "build directory")
-    _cleanup_dir(ctx, DIST_DIR_DEFAULT, "dist directory")
+    _cleanup_dir(ctx, project_dir / BUILD_DIR_DEFAULT, "build directory")
+    _cleanup_dir(ctx, project_dir / DIST_DIR_DEFAULT, "dist directory")
