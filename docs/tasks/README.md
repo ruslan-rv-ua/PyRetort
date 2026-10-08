@@ -56,7 +56,7 @@ uv run mypy src
 | 12 | [12-standalone-mode.md](12-standalone-mode.md) | Після 0.1: режим без встановлення пакета | 11 | TODO |
 | 13 | [13-cleanup-errors.md](13-cleanup-errors.md) | `cleanup`: код 1, коли теку не вдалося видалити | 01 | DONE |
 | 14 | [14-optional-config-fields.md](14-optional-config-fields.md) | Необов'язкові поля `[tool.pyretort]`: `main_file` у режимі пакета, типові `install_as_package` і `show_console_window` | 04 | TODO |
-| 15 | [15-launcher-without-cmd.md](15-launcher-without-cmd.md) | Власний лаунчер: без cmd.exe, аргументи дослівно, консоль і GUI, три архітектури | 05 | TODO |
+| 15 | [15-launcher-without-cmd.md](15-launcher-without-cmd.md) | Власний лаунчер: без cmd.exe, аргументи дослівно, консоль і GUI, три архітектури | 05 | DONE |
 
 ## Ідеї після 0.1 без специфікації
 

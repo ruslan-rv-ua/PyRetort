@@ -6,9 +6,10 @@ Run from the repository root:
     uv run --group launcher python launcher/build.py --check  # compare with a fresh build
 
 The templates are src/pyretort/builder/exe_generator/templates/launcher-<arch>-<variant>
-for every PythonArchitecture and the console and gui variants. zig cc produces
-byte-identical files for the same source and flags, so --check rebuilds into a
-temporary directory and compares: it exits with 1 and lists the files that differ.
+for every PythonArchitecture and the console and gui variants; generate_exe names
+them through launcher_template. zig cc produces byte-identical files for the same
+source and flags, so --check rebuilds into a temporary directory and compares: it
+exits with 1 and lists the files that differ.
 """
 
 from __future__ import annotations
@@ -20,38 +21,38 @@ import sys
 import tempfile
 from pathlib import Path
 
+from pyretort.builder.exe_generator.generate_exe import (
+    COMMAND_CAPACITY,
+    COMMAND_PLACEHOLDER,
+    TEMPLATES_DIR,
+    launcher_template,
+)
 from pyretort.types import PythonArchitecture
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SOURCE = REPO_ROOT / "launcher" / "launcher.c"
-TEMPLATES_DIR = (
-    REPO_ROOT / "src" / "pyretort" / "builder" / "exe_generator" / "templates"
-)
 
 ZIG_TARGETS: dict[PythonArchitecture, str] = {
     PythonArchitecture.AMD64: "x86_64-windows-gnu",
     PythonArchitecture.WIN32: "x86-windows-gnu",
     PythonArchitecture.ARM64: "aarch64-windows-gnu",
 }
-VARIANT_FLAGS: dict[str, list[str]] = {
-    "console": ["-Wl,--subsystem,console"],
-    "gui": ["-DPYRETORT_GUI", "-Wl,--subsystem,windows"],
-}
 COMMON_FLAGS = ["-municode", "-Os", "-s", "-Wall", "-Wextra", "-Werror"]
 
-# Mirrors command_template in launcher.c: the marker, then zeros up to
-# COMMAND_CAPACITY UTF-16 units. generate_exe overwrites this region.
-COMMAND_PLACEHOLDER = "PYRETORT-LAUNCHER-COMMAND-PLACEHOLDER"
-COMMAND_CAPACITY = 1024
 
-
-def template_name(architecture: PythonArchitecture, variant: str) -> str:
-    """Return the template file name for an architecture and variant."""
-    return f"launcher-{architecture.value}-{variant}"
+def variant_flags(show_console: bool) -> list[str]:
+    """Return the flags for the console variant (wmain) or the GUI one (wWinMain)."""
+    if show_console:
+        return ["-Wl,--subsystem,console"]
+    return ["-DPYRETORT_GUI", "-Wl,--subsystem,windows"]
 
 
 def verify_placeholder(template: Path) -> None:
-    """Exit with an error unless the placeholder region is intact."""
+    """Exit with an error unless the region generate_exe overwrites is intact.
+
+    launcher.c declares command_template as COMMAND_CAPACITY UTF-16 units holding
+    COMMAND_PLACEHOLDER and then zeros; the linker must keep all of them in the file.
+    """
     data = template.read_bytes()
     marker = COMMAND_PLACEHOLDER.encode("utf-16-le")
     count = data.count(marker)
@@ -69,7 +70,7 @@ def verify_placeholder(template: Path) -> None:
 
 
 def compile_template(
-    architecture: PythonArchitecture, variant: str, output: Path
+    architecture: PythonArchitecture, show_console: bool, output: Path
 ) -> None:
     """Compile launcher.c for one architecture and variant into output."""
     command = [
@@ -80,7 +81,7 @@ def compile_template(
         "-target",
         ZIG_TARGETS[architecture],
         *COMMON_FLAGS,
-        *VARIANT_FLAGS[variant],
+        *variant_flags(show_console),
         "-o",
         str(output),
         str(SOURCE),
@@ -94,9 +95,9 @@ def build_all(directory: Path) -> list[Path]:
     directory.mkdir(parents=True, exist_ok=True)
     outputs: list[Path] = []
     for architecture in PythonArchitecture:
-        for variant in VARIANT_FLAGS:
-            output = directory / template_name(architecture, variant)
-            compile_template(architecture, variant, output)
+        for show_console in (True, False):
+            output = directory / launcher_template(architecture, show_console).name
+            compile_template(architecture, show_console, output)
             outputs.append(output)
     return outputs
 
@@ -133,6 +134,11 @@ def main() -> int:
         help="rebuild into a temporary directory and compare with the committed files",
     )
     args = parser.parse_args()
+    if not TEMPLATES_DIR.is_relative_to(REPO_ROOT):
+        raise SystemExit(
+            f"pyretort is not installed from this checkout ({REPO_ROOT}); "
+            f"its templates are at {TEMPLATES_DIR}"
+        )
     if args.check:
         return check()
     for output in build_all(TEMPLATES_DIR):
