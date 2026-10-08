@@ -97,7 +97,7 @@ def _update_pyproject_toml(pyproject_toml_path: Path) -> None:
     pyretort_config["python_version"] = _find_python_version()
 
     pyretort_config.add(
-        tomlkit.comment("Python architecture to use (amd64, win32, arm64)")
+        tomlkit.comment(f"Python architecture to use ({', '.join(PythonArchitecture)})")
     )
     pyretort_config["python_architecture"] = _find_python_architecture()
 
