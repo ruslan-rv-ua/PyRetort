@@ -3,7 +3,6 @@ from __future__ import annotations
 import tomllib
 from dataclasses import dataclass
 from enum import StrEnum
-from hashlib import sha256
 from pathlib import Path
 
 from packaging.version import InvalidVersion, Version
@@ -63,9 +62,6 @@ def launcher_entry_point(
 
 
 class BuildConfig(BaseModel):
-    # build hash based on python version, architecture, dependencies
-    build_hash: str
-
     # where the root of the project to be built is located
     project_dir_abs_path: Path
 
@@ -275,10 +271,7 @@ class BuildConfig(BaseModel):
         # Determine project directory (parent of pyproject.toml)
         project_dir = pyproject_path.parent.absolute()
 
-        # Extract dependencies from project configuration
-        dependencies = project.get("dependencies", [])
-
-        # Get python version and architecture for hash calculation
+        # Get python version and architecture
         python_version = tool_pyretort.get("python_version")
         python_architecture_str = tool_pyretort.get("python_architecture")
         try:
@@ -289,10 +282,6 @@ class BuildConfig(BaseModel):
                 f"Invalid python_architecture: '{python_architecture_str}'. "
                 f"Valid values: {', '.join(valid)}"
             ) from e
-
-        # Calculate build_hash based on python version, architecture, and dependencies
-        hash_data = f"{python_version}|{python_architecture.value}|{'|'.join(sorted(dependencies))}"
-        build_hash = sha256(hash_data.encode()).hexdigest()
 
         # Validate source subdirectory
         source_subdir = Path(tool_pyretort.get("project_source_subdir"))
@@ -375,7 +364,6 @@ class BuildConfig(BaseModel):
 
         # Extract configuration; absent optional booleans keep the model defaults
         config_data = {
-            "build_hash": build_hash,
             "project_dir_abs_path": project_dir,
             "project_name": project.get("name"),
             "project_version": project.get("version"),

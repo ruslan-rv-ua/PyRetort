@@ -84,7 +84,6 @@ def generate_exe() -> Iterator[MagicMock]:
 def sample_build_config() -> BuildConfig:
     """Create a sample BuildConfig for testing."""
     return BuildConfig(
-        build_hash="abc123def456",
         project_dir_abs_path=Path("c:/test/project"),
         project_name="test-project",
         project_version="1.0.0",
@@ -192,12 +191,6 @@ def download_dir(tmp_path: Path) -> Path:
     dl_dir = tmp_path / "downloads"
     dl_dir.mkdir()
     return dl_dir
-
-
-@pytest.fixture
-def cache_dir(tmp_path: Path) -> Path:
-    """Create a temporary cache directory path (not created yet)."""
-    return tmp_path / "cache"
 
 
 @pytest.fixture
