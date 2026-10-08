@@ -1,5 +1,7 @@
 """Tests for pyretort.cli.commands.check command."""
 
+from __future__ import annotations
+
 from pathlib import Path
 
 import pytest

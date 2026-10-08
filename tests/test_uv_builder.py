@@ -3,17 +3,15 @@
 from __future__ import annotations
 
 import subprocess
-from collections.abc import Iterator
-from dataclasses import dataclass
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
 from pyretort.builder.errors import BuildError
-from pyretort.builder.pydist_manager import PydistManager
 from pyretort.builder.uv_builder import UVBuilder
 from pyretort.types import BuildConfig, PythonArchitecture
+from tests.conftest import BuildExternals
 
 
 def make_config(
@@ -35,43 +33,6 @@ def make_config(
         icon_file_rel_path=None if icon_file is None else Path(icon_file),
         create_dist_zip_file=False,
     )
-
-
-def fake_pydist_manager(pydist_path: Path, downloader: object) -> MagicMock:
-    """Stand in for PydistManager: same python.exe location, no download."""
-    manager = MagicMock(spec=PydistManager)
-    manager.python_executable = pydist_path / "python.exe"
-    return manager
-
-
-@dataclass
-class BuildExternals:
-    """The mocks that replace what a build needs from outside the project."""
-
-    pydist_manager_class: MagicMock
-    run: MagicMock
-    which: MagicMock
-
-
-@pytest.fixture
-def externals() -> Iterator[BuildExternals]:
-    """Replace the Python download, the uv call and the uv lookup in PATH."""
-    with (
-        patch(
-            "pyretort.builder.uv_builder.PydistManager",
-            side_effect=fake_pydist_manager,
-        ) as pydist_manager_class,
-        patch("subprocess.run") as run,
-        patch("shutil.which", return_value="C:\\tools\\uv.exe") as which,
-    ):
-        yield BuildExternals(pydist_manager_class, run, which)
-
-
-@pytest.fixture
-def generate_exe() -> Iterator[MagicMock]:
-    """Replace the launcher generator so no exe is written."""
-    with patch("pyretort.builder.uv_builder.generate_exe") as mock:
-        yield mock
 
 
 @pytest.mark.usefixtures("externals")

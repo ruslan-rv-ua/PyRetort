@@ -1,6 +1,7 @@
 """Tests for pyretort.cli.commands.build command."""
 
-from collections.abc import Iterator
+from __future__ import annotations
+
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -14,24 +15,9 @@ from pyretort.cli import app
 runner = CliRunner()
 
 
-@pytest.fixture
-def offline_build(tmp_path: Path) -> Iterator[None]:
-    """Run the real UVBuilder with the download, uv and the launcher replaced."""
-    with (
-        patch("pyretort.builder.uv_builder.PydistManager") as pydist_manager_class,
-        patch("subprocess.run"),
-        patch("shutil.which", return_value="C:\\tools\\uv.exe"),
-        patch("pyretort.builder.uv_builder.generate_exe"),
-    ):
-        pydist_manager_class.return_value.python_executable = (
-            tmp_path / "build" / "test-app-0.1.0-amd64" / "test-app" / "python.exe"
-        )
-        yield
-
-
-@pytest.mark.usefixtures("offline_build")
+@pytest.mark.usefixtures("externals", "generate_exe")
 class TestBuildCommandOutput:
-    """Tests for what the build command prints."""
+    """Tests for what the build command prints, with the real UVBuilder."""
 
     def test_build_prints_progress(
         self, tmp_path: Path, valid_pyproject_toml: Path
