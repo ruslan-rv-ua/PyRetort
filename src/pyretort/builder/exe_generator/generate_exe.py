@@ -44,6 +44,7 @@ def generate_exe(
     command: str,
     icon_file: Path | None = None,
     show_console: bool = True,
+    architecture: PythonArchitecture = PythonArchitecture.AMD64,
 ) -> None:
     """Write a launcher that runs a command string, with an optional icon.
 
@@ -56,6 +57,8 @@ def generate_exe(
             to the executable. Defaults to None.
         show_console (bool, optional): Whether to show the console window
             when the executable is run. Defaults to True.
+        architecture (PythonArchitecture, optional): The architecture of the
+            launcher, the same as the embedded Python's. Defaults to AMD64.
 
     Raises:
         ValueError: If the command is longer than MAX_CMD_LENGTH UTF-16 units;
@@ -70,7 +73,7 @@ def generate_exe(
             f"Launcher command is {length} characters long; "
             f"the limit is {MAX_CMD_LENGTH}: {command}"
         )
-    template = launcher_template(PythonArchitecture.AMD64, True)
+    template = launcher_template(architecture, show_console)
     data = template.read_bytes()
     marker = COMMAND_PLACEHOLDER.encode("utf-16-le")
     if data.count(marker) != 1:

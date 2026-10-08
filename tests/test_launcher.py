@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import platform
 import subprocess
 import sys
 from pathlib import Path
@@ -12,8 +13,22 @@ from typing import Any
 import pytest
 
 from pyretort.builder.exe_generator import generate_exe
+from pyretort.types import PythonArchitecture
 
 pytestmark = pytest.mark.windows
+
+ARM64_ONLY = pytest.mark.skipif(
+    platform.machine() != "ARM64", reason="arm64 launchers run only on ARM64"
+)
+# win32 launchers run on x64 through WOW64; arm64 ones need an ARM64 machine.
+LAUNCHER_VARIANTS = [
+    pytest.param(PythonArchitecture.AMD64, True, id="amd64-console"),
+    pytest.param(PythonArchitecture.AMD64, False, id="amd64-gui"),
+    pytest.param(PythonArchitecture.WIN32, True, id="win32-console"),
+    pytest.param(PythonArchitecture.WIN32, False, id="win32-gui"),
+    pytest.param(PythonArchitecture.ARM64, True, id="arm64-console", marks=ARM64_ONLY),
+    pytest.param(PythonArchitecture.ARM64, False, id="arm64-gui", marks=ARM64_ONLY),
+]
 
 # Written next to every launcher; reports what the child Python received.
 # Modes come from the environment so that argv stays untouched.
@@ -30,7 +45,11 @@ sys.exit(int(os.environ.get("PROBE_EXIT_CODE", "0")))
 """
 
 
-def make_launcher(directory: Path) -> Path:
+def make_launcher(
+    directory: Path,
+    architecture: PythonArchitecture = PythonArchitecture.AMD64,
+    show_console: bool = True,
+) -> Path:
     """Write probe.py and a launcher that runs it with the base interpreter.
 
     sys.executable in a virtual environment is a redirector that starts the
@@ -41,7 +60,12 @@ def make_launcher(directory: Path) -> Path:
     (directory / "probe.py").write_text(PROBE, encoding="utf-8")
     launcher = directory / "app.exe"
     command = f'"{sys._base_executable}" "{{EXE_DIR}}\\probe.py"'
-    generate_exe(target=launcher, command=command)
+    generate_exe(
+        target=launcher,
+        command=command,
+        show_console=show_console,
+        architecture=architecture,
+    )
     return launcher
 
 
@@ -85,12 +109,17 @@ ARGUMENT_LISTS = [
 class TestLauncherArguments:
     """Tests for the arguments the launcher hands to the child Python."""
 
+    @pytest.mark.parametrize(("architecture", "show_console"), LAUNCHER_VARIANTS)
     @pytest.mark.parametrize("args", ARGUMENT_LISTS)
     def test_launcher_passes_arguments_verbatim(
-        self, tmp_path: Path, args: list[str]
+        self,
+        tmp_path: Path,
+        architecture: PythonArchitecture,
+        show_console: bool,
+        args: list[str],
     ) -> None:
         """Test that the child gets the arguments unchanged and no cmd.exe runs."""
-        launcher = make_launcher(tmp_path)
+        launcher = make_launcher(tmp_path, architecture, show_console)
 
         completed = run_launcher(launcher, *args)
 
@@ -122,9 +151,12 @@ class TestLauncherProcess:
 
         assert probe_result(completed)["argv"] == ["arg1"]
 
-    def test_launcher_returns_child_exit_code(self, tmp_path: Path) -> None:
+    @pytest.mark.parametrize(("architecture", "show_console"), LAUNCHER_VARIANTS)
+    def test_launcher_returns_child_exit_code(
+        self, tmp_path: Path, architecture: PythonArchitecture, show_console: bool
+    ) -> None:
         """Test that the launcher exits with the child's exit code."""
-        launcher = make_launcher(tmp_path)
+        launcher = make_launcher(tmp_path, architecture, show_console)
 
         completed = run_launcher(launcher, env={"PROBE_EXIT_CODE": "3"})
 
