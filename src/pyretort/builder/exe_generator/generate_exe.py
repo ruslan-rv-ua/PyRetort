@@ -1,11 +1,11 @@
-from __future__ import annotations
-
 """This module provides functions for generating executable files on Windows.
 
 Functions:
 - generate_exe: Generates an executable file from a command string and an optional icon file.
 - add_icon_to_exe: Adds an icon file to an existing executable file.
 """
+
+from __future__ import annotations
 
 import struct
 from pathlib import Path
