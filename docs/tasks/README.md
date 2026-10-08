@@ -53,7 +53,7 @@ uv run mypy src launcher
 | 09 | [09-readme-and-metadata.md](09-readme-and-metadata.md) | README, CHANGELOG, метадані пакета, подяка gen-exe | 06, 14, 15 | DONE |
 | 10 | [10-examples.md](10-examples.md) | Приклади: прибрати застарілі, додати hello-cli | 04 | DONE |
 | 11 | [11-release-0.1.0.md](11-release-0.1.0.md) | Реліз 0.1.0: тег, публікація на PyPI, перевірка встановлення | 07, 08, 09, 10, 13, 14, 15, 16, 17, 18, 20 | DONE |
-| 12 | [12-standalone-mode.md](12-standalone-mode.md) | Після 0.1: standalone-режим — збірка без встановлення пакета, приклад hello-script | 11 | TODO |
+| 12 | [12-standalone-mode.md](12-standalone-mode.md) | Після 0.1: standalone-режим — збірка без встановлення пакета, приклад hello-script | 11 | DONE |
 | 13 | [13-cleanup-errors.md](13-cleanup-errors.md) | `cleanup`: код 1, коли теку не вдалося видалити | 01 | DONE |
 | 14 | [14-optional-config-fields.md](14-optional-config-fields.md) | Необов'язкові поля `[tool.pyretort]`: `main_file` у режимі пакета, типові `install_as_package` і `show_console_window` | 04 | DONE |
 | 15 | [15-launcher-without-cmd.md](15-launcher-without-cmd.md) | Власний лаунчер: без cmd.exe, аргументи дослівно, консоль і GUI, три архітектури | 05 | DONE |

@@ -77,6 +77,10 @@ PyRetort builds a project that has:
 - a package with a `__main__.py`: the launcher starts the application with
   `python -m <package>`.
 
+A project without a package, for example one created with plain `uv init`, is
+built in [standalone mode](#standalone-mode) instead: the build copies the
+sources and the launcher runs a script.
+
 A project created with `uv init --package` lacks only the `__main__.py`:
 
 ```powershell
@@ -137,8 +141,9 @@ To share the application, copy the `build\hello-0.1.0-amd64` folder or send
 the ZIP archive: it unpacks into the same single folder and runs on another
 Windows computer without Python.
 
-Two complete projects live in the repository: a console program and a GUI
-application with third-party dependencies. See the
+Three complete projects live in the repository: a console program, a console
+script in standalone mode and a GUI application with third-party
+dependencies. See the
 [examples](https://github.com/ruslan-rv-ua/PyRetort/blob/develop/examples/README.md).
 
 ### Commands
@@ -177,14 +182,55 @@ create_dist_zip_file = true
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `project_source_subdir` | string | yes | — | Folder of the package, relative to the project root, for example `"src/hello"`. Its last component is the module the launcher runs with `python -m`. `"."` means that the sources lie in the project root: the module is then the project name in lowercase with underscores, as a `<module>/__main__.py` package or a `<module>.py` file. |
+| `project_source_subdir` | string | yes | — | Folder of the package, relative to the project root, for example `"src/hello"`. Its last component is the module the launcher runs with `python -m`. `"."` means that the sources lie in the project root: the module is then the project name in lowercase with underscores, as a `<module>/__main__.py` package or a `<module>.py` file. In [standalone mode](#standalone-mode) it is the folder whose contents are copied into the application; `"."` copies the project root without the excluded files. |
 | `python_version` | string | yes | — | Version of the embedded Python, 3.11 or later, for example `"3.13.9"`. python.org must have a Windows embeddable package for it; security-only releases have none. `init` writes the version of the Python that runs PyRetort. |
 | `python_architecture` | string | yes | — | `"amd64"`, `"win32"` or `"arm64"`: the architecture of the embedded Python and of the launcher. The build runs the embedded Python, so an `arm64` build needs Windows on ARM. `init` writes `amd64` for a 64-bit Python and `win32` for a 32-bit one. |
 | `create_dist_zip_file` | boolean | yes | — | Also pack the application folder into `dist/<name>-<version>-<architecture>.zip`. `init` writes `true`. |
 | `show_console_window` | boolean | no | `false` | `true` for console programs: the launcher runs in a console window and shares it with the program. `false` for GUI applications: no console window appears. |
 | `icon_file_rel_path` | string | no | no icon | Path to an `.ico` file, relative to the project root; it becomes the icon of the launcher. Include images of 16, 32, 48 and 256 px, so that Windows shows a sharp icon at every size. |
-| `install_as_package` | boolean | no | `true` | Install the project into the embedded Python as a package. Only `true` works; `false`, standalone mode, is planned. |
-| `main_file` | string | no | — | Ignored: reserved for the planned standalone mode. |
+| `install_as_package` | boolean | no | `true` | `true`: install the project into the embedded Python as a package; the launcher runs `python -m <module>`. `false`: [standalone mode](#standalone-mode), the build copies the sources and the launcher runs `main_file` as a script. |
+| `main_file` | string | when `install_as_package = false` | — | Script the launcher runs in standalone mode, relative to `project_source_subdir`, for example `"main.py"`. Ignored in package mode. |
+
+### Standalone mode
+
+Choose `install_as_package = false` for a project that is not a package: a
+script with the modules it imports next to it, as plain `uv init` creates.
+Such a project needs neither a `[build-system]` table nor a `__main__.py`;
+the launcher runs `main_file` as a script.
+
+```toml
+[tool.pyretort]
+project_source_subdir = "."
+main_file = "main.py"
+install_as_package = false
+python_version = "3.13.9"
+python_architecture = "amd64"
+show_console_window = true
+create_dist_zip_file = true
+```
+
+The build copies `project_source_subdir` into `<name>\app` inside the
+application folder and installs `[project].dependencies` into the embedded
+Python with `uv pip install -r pyproject.toml`. Nothing else is installed, so
+`dependencies` may not be listed in `[project].dynamic`, and `python_version`
+must satisfy `requires-python`, which uv does not check here. The copy leaves
+out:
+
+- directly in the project root: `build`, `dist`, `downloads`, `venv`, `env`
+  and `ci`. A folder with the same name deeper in the tree, such as
+  `ui\dist` of a built frontend, is copied;
+- at any depth: `__pycache__`, `*.pyc`, `.venv`, `.git`, `.github`, `tests`,
+  the settings of IDEs, the caches of pytest, mypy and ruff, `uv.lock` and
+  other lock files, `*.log`, `*.bak` and similar development files. Binary
+  modules and libraries (`*.pyd`, `*.dll`) and folders such as `icons` are
+  copied.
+
+The folder of `main_file` is on the module search path of the application,
+so the script imports its neighbours as usual. The files it ships with lie
+next to it in `<name>\app`: open them through `Path(__file__).parent`, because
+the working directory stays the one the launcher was started from. The
+[hello-script](https://github.com/ruslan-rv-ua/PyRetort/blob/develop/examples/hello-script/README.md)
+example is such a project.
 
 ## How it works
 
@@ -198,14 +244,22 @@ create_dist_zip_file = true
 2. **`._pth` file.** The embeddable Python takes its module search path from
    its `python<XY>._pth` file only. PyRetort rewrites that file so that
    `import site` runs and the packages in `Lib\site-packages` can be imported.
+   In standalone mode the file also lists the folder of `main_file` inside
+   `app`, because a `._pth` file puts Python into isolated mode, which keeps
+   the script's folder off `sys.path`.
 3. **Your project.** `uv pip install --python <name>\python.exe <project>`
    builds the project with its own build backend and installs it, together
-   with its dependencies, into that Python.
+   with its dependencies, into that Python. In standalone mode the build
+   instead copies `project_source_subdir` into `<name>\app` and runs
+   `uv pip install --python <name>\python.exe -r pyproject.toml`, which
+   installs `[project].dependencies` only.
 4. **Launcher.** `<name>.exe` is a small program compiled from
    [`launcher/launcher.c`](https://github.com/ruslan-rv-ua/PyRetort/blob/develop/launcher/launcher.c),
    in the console or the GUI variant and for the architecture of the embedded
-   Python. The build writes the command `"{EXE_DIR}\<name>\python.exe" -m <module>`
-   into it and adds the icon, if one is set.
+   Python. The build writes the command `"{EXE_DIR}\<name>\python.exe" -m <module>`,
+   or in standalone mode
+   `"{EXE_DIR}\<name>\python.exe" "{EXE_DIR}\<name>\app\<main_file>"`, into
+   it and adds the icon, if one is set.
 5. **Archive.** With `create_dist_zip_file = true` the folder is packed into
    `dist/<name>-<version>-<architecture>.zip`.
 
@@ -224,7 +278,11 @@ console window.
   → run `pyretort init`.
 - `Package mode requires '…\__main__.py': the launcher runs 'python -m …'. Point project_source_subdir at the package directory or add __main__.py.`
   → set `project_source_subdir` to the folder of your package, for example
-  `src/hello`, or add `__main__.py` to the package.
+  `src/hello`, or add `__main__.py` to the package. A project without a
+  package is built in [standalone mode](#standalone-mode).
+- `Standalone mode (install_as_package = false) requires 'main_file' in [tool.pyretort]`
+  → set `main_file` to the script the launcher should run, relative to
+  `project_source_subdir`, for example `main_file = "main.py"`.
 - `uv was not found in PATH. Install uv: https://docs.astral.sh/uv/getting-started/installation/`
   → install uv, then open a new terminal.
 - `Could not prepare the build directory …: [WinError 5] Access is denied: …`
@@ -244,11 +302,13 @@ console window.
 
 ## Limitations
 
-- **Package mode only.** The project must be installable (it needs a
-  `[build-system]` table) and must run with `python -m <package>`. Bundling
-  plain scripts without packaging, standalone mode, is planned.
+- **Standalone mode copies only `project_source_subdir`.** Files outside
+  that folder, for example a `data` folder next to a `src` source folder,
+  do not reach the application: keep them under the source folder, or make
+  the project a package.
 - **No code protection.** The application ships as ordinary Python files in
-  `Lib\site-packages`; anyone who has the folder can read your code.
+  `Lib\site-packages` or `<name>\app`; anyone who has the folder can read
+  your code.
 - **Windows only.** PyRetort runs on Windows and builds only Windows
   applications.
 - **Size.** Every application carries its own Python: the folder of a project
