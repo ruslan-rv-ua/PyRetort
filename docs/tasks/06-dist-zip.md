@@ -30,7 +30,7 @@
 3. `test_build_overwrites_stale_zip`: у `dist/` лежить файл `<dist_name>.zip` з довільним вмістом → після збірки це валідний архів із новим вмістом.
 4. `test_build_returns_result_paths`: `result.app_dir == build/<dist_name>`, `result.archive == dist/<dist_name>.zip`.
 5. CLI: `test_build_prints_archive_path` — у виводі `Created archive` і шлях.
-6. Приклади (задача 10): у `examples/hello-cli/README.md` речення про те, що архів ще не створюється, замінити описом `dist/hello-cli-0.1.0-amd64.zip`; у `examples/README.md` додати архів до результату hello-cli. Перевірити реальною збіркою `uv run pyretort build -p examples/hello-cli/pyproject.toml`, потім `uv run pyretort cleanup -p examples/hello-cli/pyproject.toml`.
+6. Приклади (задача 10): обидва мають `create_dist_zip_file = true`. У `examples/hello-cli/README.md` речення про те, що архів ще не створюється, замінити описом `dist/hello-cli-0.1.0-amd64.zip`; у розділ «Build with PyRetort» файлу `examples/Simple RSS/README.md` додати `dist/simple-rss-0.1.0-amd64.zip`. Перевірити реальною збіркою `uv run pyretort build -p examples/hello-cli/pyproject.toml`, потім `uv run pyretort cleanup -p examples/hello-cli/pyproject.toml`.
 7. Критерій завершення з [README.md](README.md).
 
 ## Критерій завершення
@@ -46,6 +46,7 @@
 ## Коміти
 
 - `feat(builder): create distributable zip archive in dist/`
+- `docs(examples): describe the zip archive in the example READMEs`
 
 ## Джерела
 
