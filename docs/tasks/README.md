@@ -68,6 +68,7 @@ uv run mypy src launcher
 | 20 | [20-trusted-publishing.md](20-trusted-publishing.md) | Публікація на PyPI з GitHub Actions без токенів (trusted publishing), репетиція на TestPyPI | 08, 09 | DONE |
 | 21 | [21-init-detects-standalone.md](21-init-detects-standalone.md) | `init` обирає standalone-режим для скриптів у корені проєкту | 12 | DONE |
 | 22 | [22-system-monitor-example.md](22-system-monitor-example.md) | Приклад SystemMonitor: GUI-застосунок у standalone-режимі | 12 | TODO |
+| 23 | [23-prune-done-tasks.md](23-prune-done-tasks.md) | Після релізу 0.2.0: прибрати виконані задачі з беклогу, рішення з них — у `docs/decisions.md` | v0.2.0 | TODO |
 
 ## Ідеї після 0.1 без специфікації
 
