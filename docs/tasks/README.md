@@ -60,6 +60,7 @@ uv run mypy src launcher
 | 16 | [16-locked-build-files.md](16-locked-build-files.md) | `build`: `BuildError` замість трейсбека, коли файли попередньої збірки зайняті | 06 | DONE |
 | 17 | [17-download-errors.md](17-download-errors.md) | `build`: `BuildError` замість трейсбека, коли вбудований Python не завантажується (немає архіву на python.org, немає мережі) | 09, 16 | TODO |
 | 18 | [18-help-markup.md](18-help-markup.md) | `init --help`: назва секції `[tool.pyretort]` зникає з опису `--force` | — | TODO |
+| 19 | [19-unused-build-cache.md](19-unused-build-cache.md) | Прибрати мертвий код кешу збірки: `BuildConfig.build_hash` і `CacheManager` | — | TODO |
 
 ## Ідеї після 0.1 без специфікації
 
