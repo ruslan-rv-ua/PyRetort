@@ -13,6 +13,8 @@ UV_INSTALL_URL = "https://docs.astral.sh/uv/getting-started/installation/"
 
 
 class UVBuilder(BaseBuilder):
+    """Build build/<dist_name>/: embedded Python, the project via uv, a launcher."""
+
     def build(self) -> None:
         """Build the distribution; raise BuildError for every expected failure."""
         if shutil.which("uv") is None:
