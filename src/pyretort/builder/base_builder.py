@@ -63,8 +63,9 @@ class BaseBuilder:
         another program holds it open.
         """
         try:
+            # make_archive appends ".zip" to base_name itself.
             shutil.make_archive(
-                base_name=str(self.dist_path / self.config.dist_name),
+                base_name=str(self.archive_path.with_suffix("")),
                 format="zip",
                 root_dir=self.build_path,
                 base_dir=self.config.dist_name,
