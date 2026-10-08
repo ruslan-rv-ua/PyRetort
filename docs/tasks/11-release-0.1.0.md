@@ -14,6 +14,7 @@
 - uv 0.12.x має `uv version` (читання і зміна версії, `--bump`, `--dry-run`), `uv build` (створює `dist/*.whl` і `dist/*.tar.gz`; `--no-sources` рекомендується перед публікацією) і `uv publish` (токен через `--token`/`UV_PUBLISH_TOKEN` або trusted publishing).
 - Перевірка колеса без встановлення в проєкт: `uv run --no-project --with <шлях до .whl> -- pyretort version`; встановлення як інструмента: `uv tool install <шлях до .whl>`.
 - `dist/` у корені ігнорується git.
+- `uv build` кладе в sdist усі файли робочої копії, яких не виключає `.gitignore` проєкту: hatchling не читає `.git/info/exclude`. 8 жовтня 2026 (задача 09) так у `pyretort-0.1.0.tar.gz` потрапила тека `.kilo/`, 91 файл: git worktree `.kilo/worktrees/near-citrine` на коміті `54a6ffb`, який створив Kilo Code. Git її не показує, бо `.kilo/` виключено через `.git/info/exclude` і `.kilo/.gitignore`.
 - Push, створення релізу і публікація на PyPI — зовнішні дії: виконуються лише з явної згоди користувача в поточній сесії.
 
 ## Рішення
@@ -27,7 +28,7 @@
 
 1. Повна перевірка на `develop`: чотири команди з [README.md](README.md) плюс `uv run pytest -m "slow or not slow"`.
 2. `git flow release start v0.1.0`; далі вся робота в гілці `release/v0.1.0`. `uv version` → `pyretort 0.1.0`. Оновити CHANGELOG і статус задачі в таблиці README → DONE. Коміт `chore(release): v0.1.0`.
-3. `Remove-Item -Recurse -Force dist -ErrorAction SilentlyContinue; uv build --no-sources`.
+3. `Remove-Item -Recurse -Force dist -ErrorAction SilentlyContinue; uv build --no-sources`. У `tar -tzf dist/pyretort-0.1.0.tar.gz` немає `.kilo/` та інших локальних тек (див. «Контекст»); якщо є — спитати користувача, прибрати їх чи виключити зі збірки, і зібрати знову.
 4. Перевірка колеса з чужої теки: `uv run --no-project --with "<repo>\dist\pyretort-0.1.0-py3-none-any.whl" -- pyretort version` → `PyRetort 0.1.0`; `uv tool install "<repo>\dist\pyretort-0.1.0-py3-none-any.whl"` → `pyretort build -p examples/hello-cli/pyproject.toml` працює без `uv run`; з іншої теки `& "<repo>\examples\hello-cli\build\hello-cli-0.1.0-amd64\hello-cli.exe" arg1 "two words" "a&b"` друкує `Arguments: ['arg1', 'two words', 'a&b']` (лаунчер із задачі 15); потім `pyretort cleanup -p examples/hello-cli/pyproject.toml` і `uv tool uninstall pyretort`.
 5. `git flow release finish --no-ff --no-push -m "PyRetort 0.1.0" v0.1.0`: злиття в `main`, анотований тег `v0.1.0`, `main` підтягується в `develop`.
 6. Спитати користувача про `git push origin main develop --follow-tags` і реліз на GitHub; виконати після згоди. Опційно PyPI (пункт 4 рішень).
