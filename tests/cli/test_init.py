@@ -147,7 +147,7 @@ class TestInitCommand:
     def test_init_leaves_main_file_commented_out_when_none_found(
         self, tmp_path: Path
     ) -> None:
-        """Test that without main.py, app.py or run.py init writes no main_file key."""
+        """Test that init writes no main_file key when it finds no main file."""
         pyproject = tmp_path / "pyproject.toml"
         data = {
             "project": {"name": "test-app", "version": "0.1.0"},
