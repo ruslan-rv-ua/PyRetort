@@ -34,6 +34,9 @@ dev = [
     "types-pywin32>=312",
     "tomli-w>=1.2.0",
 ]
+# Builds launcher/launcher.c into the launcher templates; not part of dev,
+# so `uv sync` does not install it. See launcher/build.py.
+launcher = ["ziglang==0.16.0"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
