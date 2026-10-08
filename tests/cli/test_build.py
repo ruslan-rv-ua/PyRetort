@@ -73,6 +73,21 @@ class TestBuildCommandOutput:
         assert result.exit_code == 1
         assert result.output == ""
 
+    def test_build_reports_locked_build_dir_without_traceback(
+        self, tmp_path: Path, valid_pyproject_toml: Path
+    ) -> None:
+        """Test that a file of the previous build held open is reported, code 1."""
+        app_dir = tmp_path / "build" / "test-app-0.1.0-amd64"
+        app_dir.mkdir(parents=True)
+        (app_dir / "stale.txt").write_text("left over from an earlier build")
+
+        with open(app_dir / "stale.txt", "rb"):
+            result = runner.invoke(app, ["build", "-p", str(valid_pyproject_toml)])
+
+        assert result.exit_code == 1
+        assert "Could not prepare the build directory" in result.stderr
+        assert "Build complete" not in result.output
+
 
 class TestBuildCommand:
     """Tests for the build command."""
