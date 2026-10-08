@@ -5,12 +5,14 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import httpx
 import pytest
 import tomli_w
 from typer.testing import CliRunner
 
 from pyretort.builder.errors import BuildError
 from pyretort.cli import app
+from tests.conftest import BuildExternals, failing_pydist_manager
 
 runner = CliRunner()
 
@@ -86,6 +88,26 @@ class TestBuildCommandOutput:
 
         assert result.exit_code == 1
         assert "Could not prepare the build directory" in result.stderr
+        assert "Build complete" not in result.output
+
+    def test_build_reports_missing_embedded_python_without_traceback(
+        self, valid_pyproject_toml: Path, externals: BuildExternals
+    ) -> None:
+        """Test that a 404 for the embedded Python is reported without a traceback."""
+        url = "https://www.python.org/ftp/python/3.13.0/python-3.13.0-embed-amd64.zip"
+        request = httpx.Request("GET", url)
+        missing = httpx.HTTPStatusError(
+            "Client error '404 Not Found'",
+            request=request,
+            response=httpx.Response(404, request=request),
+        )
+        externals.pydist_manager_class.side_effect = failing_pydist_manager(missing)
+
+        result = runner.invoke(app, ["build", "-p", str(valid_pyproject_toml)])
+
+        assert result.exit_code == 1
+        assert "python.org has no Windows embeddable package" in result.stderr
+        assert "Traceback" not in result.output
         assert "Build complete" not in result.output
 
 

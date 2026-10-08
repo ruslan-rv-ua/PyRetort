@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -31,6 +31,17 @@ def fake_pydist_manager(pydist_path: Path, downloader: Downloader) -> MagicMock:
 
     manager.install_embedded_python.side_effect = install_embedded_python
     return manager
+
+
+def failing_pydist_manager(error: Exception) -> Callable[..., MagicMock]:
+    """Return a PydistManager stand-in whose embedded Python install raises error."""
+
+    def make(pydist_path: Path, downloader: Downloader) -> MagicMock:
+        manager = fake_pydist_manager(pydist_path, downloader)
+        manager.install_embedded_python.side_effect = error
+        return manager
+
+    return make
 
 
 @dataclass

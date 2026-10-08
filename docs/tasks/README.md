@@ -58,7 +58,7 @@ uv run mypy src launcher
 | 14 | [14-optional-config-fields.md](14-optional-config-fields.md) | Необов'язкові поля `[tool.pyretort]`: `main_file` у режимі пакета, типові `install_as_package` і `show_console_window` | 04 | DONE |
 | 15 | [15-launcher-without-cmd.md](15-launcher-without-cmd.md) | Власний лаунчер: без cmd.exe, аргументи дослівно, консоль і GUI, три архітектури | 05 | DONE |
 | 16 | [16-locked-build-files.md](16-locked-build-files.md) | `build`: `BuildError` замість трейсбека, коли файли попередньої збірки зайняті | 06 | DONE |
-| 17 | [17-download-errors.md](17-download-errors.md) | `build`: `BuildError` замість трейсбека, коли вбудований Python не завантажується (немає архіву на python.org, немає мережі) | 09, 16 | TODO |
+| 17 | [17-download-errors.md](17-download-errors.md) | `build`: `BuildError` замість трейсбека, коли вбудований Python не завантажується (немає архіву на python.org, немає мережі) | 09, 16 | DONE |
 | 18 | [18-help-markup.md](18-help-markup.md) | `init --help`: назва секції `[tool.pyretort]` зникає з опису `--force` | — | TODO |
 | 19 | [19-unused-build-cache.md](19-unused-build-cache.md) | Прибрати мертвий код кешу збірки: `BuildConfig.build_hash` і `CacheManager` | — | TODO |
 

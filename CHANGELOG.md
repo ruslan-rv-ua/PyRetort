@@ -27,8 +27,9 @@ First public release.
 - `-p`/`--pyproject-toml` points `init`, `check`, `build` and `cleanup` at a
   project in another folder; the global `-q`/`--quiet` option silences the
   output.
-- A missing `uv`, a failed installation and files of the previous build that
-  are still in use end with a clear message instead of a traceback.
+- A missing `uv`, an embedded Python that cannot be downloaded, a failed
+  installation and files of the previous build that are still in use end with
+  a clear message instead of a traceback.
 - Two examples: hello-cli, a console program, and Simple RSS, a wxPython
   application.
 

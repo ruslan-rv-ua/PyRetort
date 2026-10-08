@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 from zipfile import ZipFile
 
+import httpx
 import pytest
 import win32con
 import win32file
@@ -14,7 +15,18 @@ import win32file
 from pyretort.builder.errors import BuildError
 from pyretort.builder.uv_builder import UVBuilder
 from pyretort.types import BuildConfig, PythonArchitecture
-from tests.conftest import BuildExternals
+from tests.conftest import BuildExternals, failing_pydist_manager
+
+EMBED_URL = "https://www.python.org/ftp/python/3.12.12/python-3.12.12-embed-amd64.zip"
+EMBED_REQUEST = httpx.Request("GET", EMBED_URL)
+MISSING = httpx.HTTPStatusError(
+    "Client error '404 Not Found'",
+    request=EMBED_REQUEST,
+    response=httpx.Response(404, request=EMBED_REQUEST),
+)
+OFFLINE = httpx.ConnectError(
+    "[WinError 10061] No connection could be made", request=EMBED_REQUEST
+)
 
 
 def make_config(
@@ -217,6 +229,37 @@ class TestUVBuilderFailures:
 
         assert "exit code 1" in str(exc_info.value)
         assert "No solution found" in str(exc_info.value)
+
+    def test_build_reports_missing_embedded_python(
+        self, tmp_path: Path, externals: BuildExternals
+    ) -> None:
+        """Test that a version python.org has no embeddable package for fails clearly."""
+        config = make_config(tmp_path, "src/my_pkg", python_version="3.12.12")
+        externals.pydist_manager_class.side_effect = failing_pydist_manager(MISSING)
+
+        with pytest.raises(BuildError) as exc_info:
+            UVBuilder(config).build()
+
+        assert (
+            "python.org has no Windows embeddable package for Python 3.12.12 (amd64)"
+            in str(exc_info.value)
+        )
+        assert EMBED_URL in str(exc_info.value)
+
+    def test_build_reports_failed_download(
+        self, tmp_path: Path, externals: BuildExternals
+    ) -> None:
+        """Test that a download cut off by the network fails with BuildError."""
+        config = make_config(tmp_path, "src/my_pkg", python_version="3.12.12")
+        externals.pydist_manager_class.side_effect = failing_pydist_manager(OFFLINE)
+
+        with pytest.raises(
+            BuildError,
+            match=r"Could not download the embedded Python 3\.12\.12 \(amd64\)",
+        ) as exc_info:
+            UVBuilder(config).build()
+
+        assert "WinError 10061" in str(exc_info.value)
 
     def test_build_turns_long_command_into_build_error(self, tmp_path: Path) -> None:
         """Test that a module name pushing the launcher command over the limit fails."""
