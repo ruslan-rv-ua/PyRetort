@@ -114,6 +114,29 @@ class TestCLIWorkflow:
         assert check_result.exit_code == 0
         assert "valid" in check_result.output.lower()
 
+    def test_init_then_check_without_main_file(self, tmp_path: Path) -> None:
+        """Test that init's config for a package without main.py passes check."""
+        pyproject = tmp_path / "pyproject.toml"
+        data = {
+            "project": {
+                "name": "workflow-test",
+                "version": "0.1.0",
+            },
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+        }
+        pyproject.write_bytes(tomli_w.dumps(data).encode())
+        source_dir = tmp_path / "src" / "workflow_test"
+        source_dir.mkdir(parents=True)
+        (source_dir / "__init__.py").write_text("")
+        (source_dir / "__main__.py").write_text("")
+
+        init_result = runner.invoke(app, ["init", "-p", str(pyproject)])
+        assert init_result.exit_code == 0, init_result.output
+
+        check_result = runner.invoke(app, ["check", "-p", str(pyproject)])
+        assert check_result.exit_code == 0, check_result.output
+        assert "is valid" in check_result.output
+
 
 class TestPydistManagerIntegration:
     """Integration tests for PydistManager without network."""
