@@ -9,8 +9,9 @@ The example shows what a command-line program needs:
   console window, so its output is visible. GUI programs such as Simple RSS
   use `false`.
 - Arguments given to `hello-cli.exe` reach the program in `sys.argv`. Known
-  limitation: the launcher drops quotes, so `"two words"` arrives as two
-  arguments.
+  limitation: the current launcher passes them through `cmd.exe`, so quotes
+  are lost (`"two words"` arrives as two arguments) and `cmd.exe` interprets
+  characters such as `&`, `|`, `>`, `^` and `%`.
 
 ## Build with PyRetort
 
