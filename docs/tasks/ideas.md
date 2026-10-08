@@ -10,9 +10,9 @@
 
 Коли яку ідею брати в роботу. Патч-версія — лише виправлення: команда починає робити те, що вже обіцяє документація, без нових полів конфігурації, опцій і мережевих запитів. Мінорна версія — нові можливості. Реліз відгалужується від `develop`, тож у `develop` потрапляє лише те, що піде в найближчий реліз: задачі патч-версії виконують першими, а задачі мінорної версії після неї залежать від її тегу (стовпець «Залежить від» у [таблиці задач](README.md#задачі)).
 
-| Версія | Тип | Ідеї | Чому разом |
+| Версія | Тип | Ідеї й задачі | Чому разом |
 |---|---|---|---|
-| 0.2.1 | патч | [check-project-name](#check-project-name), [init-respects-requires-python](#init-respects-requires-python) | `check` і `init` пропускають конфігурацію, на якій падає збірка; обидва виправлення — без мережі й нових полів |
+| 0.2.1 | патч | [задача 25](25-check-project-name-version.md), [init-respects-requires-python](#init-respects-requires-python) | `check` і `init` пропускають конфігурацію, на якій падає збірка; обидва виправлення — без мережі й нових полів |
 | 0.3.0 | мінорна | [build-from-uv-lock](#build-from-uv-lock), [build-standalone-excludes](#build-standalone-excludes) | Контроль над тим, що потрапляє в застосунок: перевірені версії залежностей з `uv.lock` замість найновіших і власні виключення для джерел |
 | 0.4.0 | мінорна | [init-after-plain-uv-init](#init-after-plain-uv-init), [check-python-version-exists](#check-python-version-exists), [init-finds-icon](#init-finds-icon), [cleanup-dry-run](#cleanup-dry-run) | Менше ручної роботи: проєкт після звичайного `uv init` доходить до збірки без правок, версію Python перевіряють до збірки, іконку знаходить `init`, `cleanup` показує, що видалить |
 | 0.5.0 | мінорна | [build-smaller-dist](#build-smaller-dist) | Спершу дослідження: що можна прибрати без поломок, адже без `*.dist-info` не працює `importlib.metadata` |
@@ -37,10 +37,6 @@
 ## build-standalone-excludes
 
 Власні шаблони виключень для копіювання джерел у standalone-режимі.
-
-## check-project-name
-
-Перевірка `[project].name` за PEP 508 у `check`. Ім'я з пробілом (`System Monitor`) зараз проходить `check`, а збірка падає вже на кроці uv (`Not a valid package or extra name`) — в обох режимах; див. [задачу 12](https://github.com/ruslan-rv-ua/PyRetort/blob/v0.2.0/docs/tasks/12-standalone-mode.md), факт 6.
 
 ## check-python-version-exists
 
