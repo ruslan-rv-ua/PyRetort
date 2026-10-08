@@ -181,6 +181,39 @@ class TestCheckCommand:
         assert result.exit_code == 0, result.output
         assert f"Configuration at {pyproject} is valid." in result.output
 
+    def test_check_rejects_invalid_project_name(self, tmp_path: Path) -> None:
+        """Test that a project name uv rejects fails check, not the build."""
+        pyproject = tmp_path / "pyproject.toml"
+        data = {
+            "project": {
+                "name": "System Monitor",
+                "version": "0.1.0",
+                "dependencies": [],
+            },
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": ".",
+                    "main_file": "main.py",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": False,
+                    "show_console_window": True,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject.write_bytes(tomli_w.dumps(data).encode())
+        (tmp_path / "main.py").write_text("print('hello')")
+
+        result = runner.invoke(app, ["check", "-p", str(pyproject)])
+
+        assert result.exit_code == 1
+        assert (
+            "Configuration validation failed: Invalid name in [project]: "
+            "'System Monitor'."
+        ) in result.output
+        assert "is valid" not in result.output
+
 
 class TestCheckCommandEdgeCases:
     """Edge case tests for check command."""
