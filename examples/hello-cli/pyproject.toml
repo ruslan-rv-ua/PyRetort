@@ -1,0 +1,33 @@
+[project]
+name = "hello-cli"
+version = "0.1.0"
+description = "Minimal console application packaged with PyRetort"
+readme = "README.md"
+authors = [
+    { name = "Ruslan Iskov", email = "ruslan.rv.ua+github@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = []
+
+[project.scripts]
+hello-cli = "hello_cli:main"
+
+[build-system]
+requires = ["uv_build>=0.12.23,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.pyretort]
+# Path to the project source directory relative to the project root
+# The launcher runs 'python -m <last path component>' (the project name slug when ".")
+project_source_subdir = "src/hello_cli"
+# Whether to install the project as a Python package during build
+# Must be true: standalone mode (false) is not supported yet
+install_as_package = true
+# Python version to use for the bundled distribution
+python_version = "3.13.16"
+# Python architecture to use (amd64, win32, arm64)
+python_architecture = "amd64"
+# Whether to show the console window when running the application
+show_console_window = true
+# Whether to create a ZIP archive of the distribution
+create_dist_zip_file = true

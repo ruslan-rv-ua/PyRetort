@@ -51,7 +51,7 @@ uv run mypy src
 | 07 | [07-e2e-build-test.md](07-e2e-build-test.md) | Наскрізний тест: реальна збірка і запуск exe | 06 | TODO |
 | 08 | [08-ci.md](08-ci.md) | GitHub Actions на windows-latest | 03 | DONE |
 | 09 | [09-readme-and-metadata.md](09-readme-and-metadata.md) | README, CHANGELOG, метадані пакета, подяка gen-exe | 06 | TODO |
-| 10 | [10-examples.md](10-examples.md) | Приклади: прибрати застарілі, додати hello-cli | 04 | TODO |
+| 10 | [10-examples.md](10-examples.md) | Приклади: прибрати застарілі, додати hello-cli | 04 | DONE |
 | 11 | [11-release-0.1.0.md](11-release-0.1.0.md) | Реліз 0.1.0: тег, колесо, перевірка встановлення | 07, 08, 09, 10, 13 | TODO |
 | 12 | [12-standalone-mode.md](12-standalone-mode.md) | Після 0.1: режим без встановлення пакета | 11 | TODO |
 | 13 | [13-cleanup-errors.md](13-cleanup-errors.md) | `cleanup`: код 1, коли теку не вдалося видалити | 01 | DONE |
