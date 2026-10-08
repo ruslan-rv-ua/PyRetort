@@ -153,7 +153,7 @@ class BuildConfig(BaseModel):
 
         return v
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]  # mypy: unsupported on @property
     @property
     def python_version_short(self) -> str:
         """Convert version '3.11.9' -> '311', '3.0.1' -> '30'."""
@@ -163,19 +163,19 @@ class BuildConfig(BaseModel):
         major, minor = parts[0], parts[1]
         return f"{major}{minor}"
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]  # mypy: unsupported on @property
     @property
     def project_name_slug_underscore(self) -> str:
         """Slugify project name with underscores (lowercase)."""
         return slugify(self.project_name, separator="_")
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]  # mypy: unsupported on @property
     @property
     def project_name_slug_dash(self) -> str:
         """Slugify project name with hyphens (lowercase)."""
         return slugify(self.project_name, separator="-")
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]  # mypy: unsupported on @property
     @property
     def dist_name(self) -> str:
         """Distribution name: 'my-app-0.1.0-amd64'."""

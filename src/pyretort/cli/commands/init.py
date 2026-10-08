@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import sys
+from collections.abc import MutableMapping
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import tomlkit
 import typer
 from slugify import slugify
+from tomlkit.items import Table
 
 from pyretort.cli._output import echo
 from pyretort.constants import (
@@ -54,12 +56,10 @@ def _update_pyproject_toml(pyproject_toml_path: Path) -> None:
     if "tool" not in pyproject_data:
         pyproject_data["tool"] = tomlkit.table()
 
-    tool_section = pyproject_data.get("tool")
-    if tool_section is None:
-        tool_section = tomlkit.table()
-        pyproject_data["tool"] = tool_section
+    # A Table, or an OutOfOrderTableProxy when [tool.*] tables are scattered.
+    tool_section = cast(MutableMapping[str, Any], pyproject_data["tool"])
 
-    pyretort_config: dict[str, Any] = tomlkit.table()
+    pyretort_config: Table = tomlkit.table()
 
     project_name = str(pyproject_data.get("project", {}).get("name", ""))
     source_subdir = _find_project_source_subdir(project_path, project_name)

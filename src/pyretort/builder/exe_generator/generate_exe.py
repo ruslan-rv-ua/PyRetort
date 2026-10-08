@@ -26,7 +26,7 @@ def generate_exe(
     command: str,
     icon_file: Path | None = None,
     show_console: bool = True,
-):
+) -> None:
     """Generate an executable file from a command string and an optional icon file.
 
     Args:
@@ -104,7 +104,7 @@ class DataStruct:
         self,
         dtype: tuple[tuple[str, ...], str],
         input_stream: BinaryIO | None = None,
-    ):
+    ) -> None:
         """Initialize a new instance of the DataStruct class.
 
         Args:
@@ -151,7 +151,7 @@ class DataStruct:
             return self._data[self._indices[name]]
         return self.__dict__[name]
 
-    def __setattr__(self, name: str, value: Any):
+    def __setattr__(self, name: str, value: Any) -> None:
         """Set the value of the specified attribute.
 
         Args:
@@ -172,7 +172,7 @@ class DataStruct:
     def _get_data(self) -> bytes:
         return struct.pack(self._data_types, *self._data)
 
-    def _copy(self, data_struct: DataStruct):
+    def _copy(self, data_struct: DataStruct) -> None:
         for field_name in data_struct._field_names:
             if field_name in self._field_names:
                 setattr(self, field_name, getattr(data_struct, field_name))
@@ -181,7 +181,7 @@ class DataStruct:
 class Icon:
     """Class to extract the relevant data from a .ico file."""
 
-    def __init__(self, file_name: Path):
+    def __init__(self, file_name: Path) -> None:
         """Initialize an Icon object by reading the specified icon file.
 
         Args:
@@ -214,7 +214,7 @@ class Icon:
         return self._icon_data
 
 
-def add_icon_to_exe(source_icon_file: Path, target_exe_file: Path):
+def add_icon_to_exe(source_icon_file: Path, target_exe_file: Path) -> None:
     """Add an icon to a Windows executable file.
 
     Args:
