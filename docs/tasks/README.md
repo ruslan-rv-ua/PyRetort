@@ -29,9 +29,9 @@
 
 ```
 uv run pytest
-uv run ruff check src tests
-uv run ruff format --check src tests
-uv run mypy src
+uv run ruff check src tests launcher
+uv run ruff format --check src tests launcher
+uv run mypy src launcher
 ```
 
 Усі чотири команди завершуються без помилок. До виконання задачі 02 ruff і mypy мають відомі помилки (8 і 12); вимога для задач, виконаних раніше за 02, — не додати нових.
