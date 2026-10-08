@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import shutil
 from collections.abc import Callable
+from pathlib import Path
 
 from pyretort.constants import (
     BUILD_DIR_DEFAULT,
@@ -12,7 +13,7 @@ from pyretort.types import BuildConfig
 
 
 class BaseBuilder:
-    """Paths of a build and the directory setup every builder shares.
+    """Paths of a build and the steps every builder shares: directories, archive.
 
     Constructing a builder only computes paths; nothing touches the disk
     until ``prepare_directories`` runs. ``log`` receives one progress message
@@ -38,3 +39,17 @@ class BaseBuilder:
         if self.app_path.exists():
             shutil.rmtree(self.app_path)
         self.app_path.mkdir(parents=True)
+
+    def create_archive(self) -> Path:
+        """Pack build/<dist_name>/ into dist/<dist_name>.zip and return its path.
+
+        Every entry starts with '<dist_name>/', so the archive unpacks into a
+        single folder. An archive left by an earlier build is overwritten.
+        """
+        archive = shutil.make_archive(
+            base_name=str(self.dist_path / self.config.dist_name),
+            format="zip",
+            root_dir=self.build_path,
+            base_dir=self.config.dist_name,
+        )
+        return Path(archive)

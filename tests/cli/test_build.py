@@ -30,6 +30,16 @@ class TestBuildCommandOutput:
         app_dir = tmp_path / "build" / "test-app-0.1.0-amd64"
         assert result.output.endswith(f"Build complete: {app_dir}\n")
 
+    def test_build_prints_archive_path(
+        self, tmp_path: Path, valid_pyproject_toml: Path
+    ) -> None:
+        """Test that the path of the ZIP archive in dist/ is printed."""
+        result = runner.invoke(app, ["build", "-p", str(valid_pyproject_toml)])
+
+        assert result.exit_code == 0, result.output
+        archive = tmp_path / "dist" / "test-app-0.1.0-amd64.zip"
+        assert f"Created archive {archive}\n" in result.output
+
     def test_build_defaults_to_pyproject_in_current_directory(
         self,
         tmp_path: Path,
