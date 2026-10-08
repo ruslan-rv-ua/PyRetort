@@ -3,12 +3,37 @@
 from pathlib import Path
 
 import pytest
+import tomli_w
 
 from pyretort.types import (
     MIN_PYTHON_VERSION,
     BuildConfig,
     PythonArchitecture,
 )
+
+
+def write_standalone_pyproject(
+    project_dir: Path, name: object = "test-app", version: object = "0.1.0"
+) -> Path:
+    """Write a standalone project with main.py and return its pyproject.toml."""
+    data = {
+        "project": {"name": name, "version": version, "dependencies": []},
+        "tool": {
+            "pyretort": {
+                "project_source_subdir": ".",
+                "main_file": "main.py",
+                "python_version": "3.13.9",
+                "python_architecture": "amd64",
+                "install_as_package": False,
+                "show_console_window": False,
+                "create_dist_zip_file": True,
+            }
+        },
+    }
+    pyproject_path = project_dir / "pyproject.toml"
+    pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+    (project_dir / "main.py").write_text("print('hello')")
+    return pyproject_path
 
 
 class TestPythonArchitecture:
@@ -1397,3 +1422,22 @@ class TestBuildConfigFromPyprojectToml:
             match="Invalid requires-python in \\[project\\]: '3.13 or later'",
         ):
             BuildConfig.from_pyproject_toml(pyproject_path)
+
+    @pytest.mark.parametrize(
+        ("name", "version", "message"),
+        [
+            (123, "0.1.0", "'name' in [project] must be a string, got int"),
+            ("test-app", 1.0, "'version' in [project] must be a string, got float"),
+        ],
+        ids=["name", "version"],
+    )
+    def test_from_pyproject_rejects_non_string_project_name_and_version(
+        self, tmp_path: Path, name: object, version: object, message: str
+    ) -> None:
+        """Test that a name or version of another TOML type gets a plain message."""
+        pyproject_path = write_standalone_pyproject(tmp_path, name, version)
+
+        with pytest.raises(ValueError) as exc_info:
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+        assert str(exc_info.value) == message

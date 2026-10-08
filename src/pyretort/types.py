@@ -68,6 +68,20 @@ def launcher_entry_point(
     )
 
 
+def _check_project_name_and_version(project: dict[str, Any]) -> None:
+    """Raise ValueError unless uv accepts [project].name and version.
+
+    uv checks them only when it installs the project, after the build has
+    removed the previous build and downloaded the embedded Python.
+    """
+    for field in ("name", "version"):
+        value = project[field]
+        if not isinstance(value, str):
+            raise ValueError(
+                f"'{field}' in [project] must be a string, got {type(value).__name__}"
+            )
+
+
 def _check_requires_python(requires_python: object, python_version: object) -> None:
     """Raise ValueError unless python_version satisfies [project].requires-python.
 
@@ -296,6 +310,8 @@ class BuildConfig(BaseModel):
 
         if "version" not in project:
             raise ValueError("Missing 'version' field in [project] section")
+
+        _check_project_name_and_version(project)
 
         # Validate [tool.pyretort] section
         tool_pyretort = data.get("tool", {}).get("pyretort")
