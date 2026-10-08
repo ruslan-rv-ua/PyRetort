@@ -4,6 +4,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+import httpx
+
 from .base_builder import BaseBuilder
 from .downloader import Downloader
 from .errors import BuildError
@@ -47,17 +49,30 @@ class UVBuilder(BaseBuilder):
     def _build_as_package(self) -> None:
         downloader = Downloader(self.download_path)
         pydist_manager = PydistManager(self.source_dist_path, downloader=downloader)
-        self.log(
-            f"Installing embedded Python {self.config.python_version} "
-            f"({self.config.python_architecture})"
-        )
-        pydist_manager.install_embedded_python(
-            version=self.config.python_version,
-            architecture=self.config.python_architecture,
-        )
-        pydist_manager.patch_pth_file(
-            version=self.config.python_version, relative_path_to_source="."
-        )
+        version = self.config.python_version
+        architecture = self.config.python_architecture
+        self.log(f"Installing embedded Python {version} ({architecture})")
+        try:
+            pydist_manager.install_embedded_python(
+                version=version, architecture=architecture
+            )
+        except httpx.HTTPError as e:
+            if (
+                isinstance(e, httpx.HTTPStatusError)
+                and e.response.status_code == httpx.codes.NOT_FOUND
+            ):
+                raise BuildError(
+                    "python.org has no Windows embeddable package for Python "
+                    f"{version} ({architecture}): {e.request.url}\n"
+                    "Security-only releases ship no Windows binaries; "
+                    "set python_version to a release that has one."
+                ) from e
+            raise BuildError(
+                f"Could not download the embedded Python {version} "
+                f"({architecture}): {e}\n"
+                "Check the internet connection and run the build again."
+            ) from e
+        pydist_manager.patch_pth_file(version=version, relative_path_to_source=".")
         command = [
             "uv",
             "pip",
