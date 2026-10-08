@@ -8,7 +8,9 @@ The example shows what a command-line program needs:
 - `show_console_window = true` in `[tool.pyretort]`: the program runs with a
   console window, so its output is visible. GUI programs such as Simple RSS
   use `false`.
-- Arguments given to `hello-cli.exe` reach the program in `sys.argv`.
+- Arguments given to `hello-cli.exe` reach the program in `sys.argv`. Known
+  limitation: the launcher drops quotes, so `"two words"` arrives as two
+  arguments.
 
 ## Build with PyRetort
 

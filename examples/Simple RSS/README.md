@@ -41,16 +41,17 @@ uv run pyretort build -p "examples/Simple RSS/pyproject.toml"
 ```
 
 The first build downloads the embeddable Python package from python.org into
-`downloads/`; later builds reuse it. The build installs the application with
-its dependencies (wxPython, httpx, peewee, fastfeedparser) into that Python
-and creates `build/simple-rss-0.1.0-amd64/`:
+`examples/Simple RSS/downloads/`; later builds reuse it. The build installs the
+application with its dependencies (wxPython, httpx, peewee, fastfeedparser)
+into that Python and creates `examples/Simple RSS/build/simple-rss-0.1.0-amd64/`:
 
 - `simple-rss.exe`, the launcher that starts the application;
 - `simple-rss/`, the embedded Python with the installed packages.
 
 Copy the whole folder to run Simple RSS on another Windows PC without an
-installed Python. `uv run pyretort cleanup -p "examples/Simple RSS/pyproject.toml"`
-removes `build/`, `dist/` and `downloads/`.
+installed Python. To remove `build/`, `dist/` and `downloads/` from
+`examples/Simple RSS/`, run
+`uv run pyretort cleanup -p "examples/Simple RSS/pyproject.toml"`.
 
 ## Default RSS Feeds
 
