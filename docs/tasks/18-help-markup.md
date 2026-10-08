@@ -29,7 +29,7 @@
 
 1. Екранувати дужку в тексті довідки: `help="Overwrite an existing \\[tool.pyretort] section."` Rich покаже `[tool.pyretort]`, вигляд довідки не зміниться.
 2. Режим розмітки застосунку лишити типовим: `markdown` почне тлумачити `*`, `_` і бектики в інших описах, а `None` прибере рамки з усієї довідки.
-3. CHANGELOG: рядок у розділі Fixed тієї секції, що зараз угорі (`[Unreleased]`).
+3. CHANGELOG не змінюється: задача виконується до першого релізу, а запис про нього лише перелічує можливості версії (задача 09, рішення 2).
 
 ## Сіми
 
@@ -38,13 +38,11 @@ CLI через `CliRunner`: `runner.invoke(app, ["init", "--help"])`; у `result
 ## Кроки
 
 1. `test_init_help_shows_the_section_name` у `tests/cli/test_init.py`: червоний, бо зараз у виводі `Overwrite an existing  section.` Мінімальна зміна — рішення 1. `uv run pytest -q tests/cli/test_init.py` зелений.
-2. CHANGELOG (рішення 3).
-3. Критерій завершення з [README.md](README.md).
+2. Критерій завершення з [README.md](README.md).
 
 ## Критерій завершення
 
 - Тест існує під цією назвою і проходить; `uv run pyretort init --help` показує `[tool.pyretort]`.
-- У CHANGELOG є рядок із рішення 3.
 - Чотири команди з [README.md](README.md) — за його правилами.
 - Статус задачі в [README.md](README.md) змінено на DONE.
 
@@ -55,7 +53,7 @@ CLI через `CliRunner`: `runner.invoke(app, ["init", "--help"])`; у `result
 
 ## Коміти
 
-- `fix(cli): show the section name in the init --help text` (разом із рядком CHANGELOG)
+- `fix(cli): show the section name in the init --help text`
 
 ## Джерела
 

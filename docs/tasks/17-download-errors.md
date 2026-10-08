@@ -33,7 +33,7 @@
    - будь-який інший `httpx.HTTPError` (інший статус, з'єднання, таймаут) → `BuildError` з першим рядком `Could not download the embedded Python <version> (<architecture>): <помилка>` і другим `Check the internet connection and run the build again.`
 3. `build_command` не змінюється: друкує `BuildError` у stderr через `echo` і виходить із кодом 1; з `-q` вивід порожній.
 4. README, Troubleshooting: пункт про трейсбек замінити пунктом про перше повідомлення (що робити — те саме: обрати реліз з архівом) і додати пункт `Could not download the embedded Python …` → перевірити з'єднання; за проксі httpx бере його зі змінних `HTTPS_PROXY` і `HTTP_PROXY`.
-5. CHANGELOG: рядок у розділі Fixed тієї секції, що зараз угорі (`[Unreleased]`).
+5. CHANGELOG: окремого рядка у Fixed немає, бо задача виконується до першого релізу, а запис про нього лише перелічує можливості версії (задача 09, рішення 2). Натомість у пункт Added про зрозумілі повідомлення замість трейсбека (`A missing uv, a failed installation and files of the previous build ...`) додати збій завантаження вбудованого Python.
 
 ## Сіми
 
@@ -78,7 +78,7 @@ externals.pydist_manager_class.side_effect = failing_pydist_manager(missing)
 - Ручна перевірка, як у «Контексті», на будь-якому проєкті (наприклад, `examples/hello-cli`):
   - `python_version = "3.12.12"` → `uv run pyretort build -p ...` друкує `python.org has no Windows embeddable package for Python 3.12.12 (amd64): ...` без трейсбека, код 1;
   - версія, якої немає в `downloads/`, і `$env:HTTPS_PROXY = "http://127.0.0.1:9"` → `Could not download the embedded Python ...` без трейсбека, код 1. Після перевірки змінну прибрати, а `pyproject.toml` повернути.
-- У README немає пункту про трейсбек; є два нові пункти з рішення 4. У CHANGELOG є рядок із рішення 5.
+- У README немає пункту про трейсбек; є два нові пункти з рішення 4. Пункт CHANGELOG із рішення 5 згадує завантаження.
 - Чотири команди з [README.md](README.md) — за його правилами.
 - Статус задачі в [README.md](README.md) змінено на DONE.
 
@@ -92,7 +92,7 @@ externals.pydist_manager_class.side_effect = failing_pydist_manager(missing)
 ## Коміти
 
 - `fix(builder): report failed embedded Python downloads as BuildError`
-- `docs: describe download failures in the README troubleshooting`
+- `docs: describe download failures in the README and the changelog`
 
 ## Джерела
 
