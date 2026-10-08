@@ -48,9 +48,7 @@ class UVBuilder(BaseBuilder):
 
     def _build_as_package(self) -> None:
         pydist_manager = self._install_embedded_python()
-        pydist_manager.patch_pth_file(
-            version=self.config.python_version, relative_path_to_source="."
-        )
+        pydist_manager.patch_pth_file(version=self.config.python_version)
         self.log("Installing project with uv")
         self._uv_pip_install(
             pydist_manager.python_executable, str(self.config.project_dir_abs_path)

@@ -152,22 +152,21 @@ class TestPydistManagerPatchPthFile:
     """Tests for PydistManager.patch_pth_file method."""
 
     def test_patch_creates_pth_file(self, pydist_manager: PydistManager) -> None:
-        """Test that .pth file is created with correct content."""
-        pydist_manager.patch_pth_file("3.13.0", "src/my_app")
+        """Test that without extra paths the file lists the zip, '.' and import site."""
+        pydist_manager.patch_pth_file("3.13.0")
 
         pth_file = pydist_manager._pydist_path / "python313._pth"
         assert pth_file.exists()
 
-        content = pth_file.read_text(encoding="utf-8")
-        assert "python313.zip" in content
-        assert "src/my_app" in content
-        assert "import site" in content
+        lines = pth_file.read_text(encoding="utf-8").splitlines()
+        entries = [line for line in lines if line and not line.startswith("#")]
+        assert entries == ["python313.zip", ".", "import site"]
 
     def test_patch_uses_correct_version_short(
         self, pydist_manager: PydistManager
     ) -> None:
         """Test that short version is used in filename."""
-        pydist_manager.patch_pth_file("3.11.9", "app")
+        pydist_manager.patch_pth_file("3.11.9")
 
         pth_file = pydist_manager._pydist_path / "python311._pth"
         assert pth_file.exists()
@@ -175,13 +174,16 @@ class TestPydistManagerPatchPthFile:
         content = pth_file.read_text(encoding="utf-8")
         assert "python311.zip" in content
 
-    def test_patch_accepts_path_object(self, pydist_manager: PydistManager) -> None:
-        """Test that Path objects work for relative_path_to_source."""
-        pydist_manager.patch_pth_file("3.12.0", Path("src/app"))
+    def test_patch_writes_extra_paths_after_dot(
+        self, pydist_manager: PydistManager
+    ) -> None:
+        """Test that extra paths follow python3XX.zip and '.' and precede import site."""
+        pydist_manager.patch_pth_file("3.13.0", extra_paths=["app", "app\\scripts"])
 
-        pth_file = pydist_manager._pydist_path / "python312._pth"
-        content = pth_file.read_text(encoding="utf-8")
-        assert "src/app" in content or "src\\app" in content
+        pth_file = pydist_manager._pydist_path / "python313._pth"
+        lines = pth_file.read_text(encoding="utf-8").splitlines()
+        entries = [line for line in lines if line and not line.startswith("#")]
+        assert entries == ["python313.zip", ".", "app", "app\\scripts", "import site"]
 
 
 class TestPydistManagerInstallEmbeddedPython:
