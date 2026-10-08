@@ -8,16 +8,16 @@
 
 ## Контекст
 
-Станом на 8 жовтня 2026 задачі 01–21 мають статус DONE, 22 — TODO.
+Станом на 8 жовтня 2026 [задачі 01–21](https://github.com/ruslan-rv-ua/PyRetort/tree/v0.2.0/docs/tasks) мають статус DONE, [22](https://github.com/ruslan-rv-ua/PyRetort/blob/v0.2.0/docs/tasks/22-system-monitor-example.md) — TODO.
 
-- Виконана задача — знімок: з часом вона розходиться з кодом. Задача 04 досі каже, що standalone-режим «not supported yet» і `check` його відхиляє, хоча задача 12 цей режим реалізувала. Пошук у `docs/tasks/` за словом «standalone» знаходить і цей застарілий опис.
+- Виконана задача — знімок: з часом вона розходиться з кодом. [Задача 04](https://github.com/ruslan-rv-ua/PyRetort/blob/v0.2.0/docs/tasks/04-config-semantics.md) досі каже, що standalone-режим «not supported yet» і `check` його відхиляє, хоча [задача 12](https://github.com/ruslan-rv-ua/PyRetort/blob/v0.2.0/docs/tasks/12-standalone-mode.md) цей режим реалізувала. Пошук у `docs/tasks/` за словом «standalone» знаходить і цей застарілий опис.
 - Водночас лише задачі пояснюють, чому код саме такий: «Контекст» і «Рішення», перевірені факти, відкинуті варіанти. CHANGELOG каже, що змінилося, а не чому.
 - На виконані задачі посилаються:
-  - задача 22 — на задачі 10 і 12 («факт 6», «рішення 5»);
-  - ідеї в [ideas.md](ideas.md) — на задачі 12 («факт 6») і 21 («Контекст»);
-  - спільні правила в README — на задачу 11 («лише задача 11 — у гілці релізу»);
+  - [задача 22](https://github.com/ruslan-rv-ua/PyRetort/blob/v0.2.0/docs/tasks/22-system-monitor-example.md) — на задачі [10](https://github.com/ruslan-rv-ua/PyRetort/blob/v0.2.0/docs/tasks/10-examples.md) і [12](https://github.com/ruslan-rv-ua/PyRetort/blob/v0.2.0/docs/tasks/12-standalone-mode.md) («факт 6», «рішення 5»);
+  - ідеї в [ideas.md](ideas.md) — на задачі [12](https://github.com/ruslan-rv-ua/PyRetort/blob/v0.2.0/docs/tasks/12-standalone-mode.md) («факт 6») і [21](https://github.com/ruslan-rv-ua/PyRetort/blob/v0.2.0/docs/tasks/21-init-detects-standalone.md) («Контекст»);
+  - спільні правила в README — на [задачу 11](https://github.com/ruslan-rv-ua/PyRetort/blob/v0.2.0/docs/tasks/11-release-0.1.0.md) («лише задача 11 — у гілці релізу»);
   - повідомлення комітів (`docs(tasks): add task 14 …`) і назви гілок (`feature/21-init-detects-standalone`) — на номери задач.
-- Тег зберігає беклог на момент релізу. У `v0.1.0` лежать задачі 01–20: https://github.com/ruslan-rv-ua/PyRetort/tree/v0.1.0/docs/tasks. Задачі 12 і 21 виконано вже після нього: у `v0.1.0` задача 12 має статус TODO, а задачі 21 там немає. Файл, видалений у гілці релізу, у тег не потрапляє, тож прибирати можна тільки після `release finish`.
+- Тег зберігає беклог на момент релізу. У `v0.1.0` лежать задачі 01–20: https://github.com/ruslan-rv-ua/PyRetort/tree/v0.1.0/docs/tasks. [Задачі 12](https://github.com/ruslan-rv-ua/PyRetort/blob/v0.2.0/docs/tasks/12-standalone-mode.md) і [21](https://github.com/ruslan-rv-ua/PyRetort/blob/v0.2.0/docs/tasks/21-init-detects-standalone.md) виконано вже після нього: у `v0.1.0` задача 12 має статус TODO, а задачі 21 там немає. Файл, видалений у гілці релізу, у тег не потрапляє, тож прибирати можна тільки після `release finish`.
 - Хотфікс відгалужується від `main`, і його тег не містить задач, виконаних у `develop` після останнього релізу. Тому прибирання прив'язане до релізу, а не до хотфіксу.
 - Наступний реліз очікувано має номер 0.2.0: у CHANGELOG `[Unreleased]` є розділ `### Added`. Якщо реліз отримає інший номер, усюди в задачі замість `v0.2.0` — тег цього релізу.
 
@@ -27,7 +27,7 @@
 2. `docs/decisions.md` — журнал рішень українською, як і беклог:
    - розділи за темами, наприклад: конфігурація, збірка, лаунчер, CLI, тести, CI і публікація;
    - запис — заголовок і 2–4 речення: що вирішено, чому, і посилання на задачу в тегу: `https://github.com/ruslan-rv-ua/PyRetort/blob/v0.2.0/docs/tasks/NN-назва.md`;
-   - до журналу йдуть рішення, які досі визначають код або процес. Рішення, скасовані пізнішими задачами (як відмова standalone-режиму в задачі 04), і разові дії (що перенести, що видалити) лишаються тільки в тегу.
+   - до журналу йдуть рішення, які досі визначають код або процес. Рішення, скасовані пізнішими задачами (як відмова standalone-режиму в [задачі 04](https://github.com/ruslan-rv-ua/PyRetort/blob/v0.2.0/docs/tasks/04-config-semantics.md)), і разові дії (що перенести, що видалити) лишаються тільки в тегу.
 3. З `docs/tasks/` видаляються файли задач, які мають статус DONE у тегу `v0.2.0` (`git show v0.2.0:docs/tasks/README.md`). Задачі, виконані після тегу, зокрема ця, лишаються до наступного релізу.
 4. README беклогу:
    - таблиця містить лише задачі, що лишилися; над нею рядок: «Виконані задачі 01–NN — у тегу [v0.2.0](https://github.com/ruslan-rv-ua/PyRetort/tree/v0.2.0/docs/tasks), рішення з них — у [docs/decisions.md](../decisions.md)»;
