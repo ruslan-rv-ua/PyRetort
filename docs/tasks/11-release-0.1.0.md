@@ -1,6 +1,6 @@
 # 11. Реліз 0.1.0
 
-Залежить від: 07, 08, 09, 10, 13, 14. Оцінка: S.
+Залежить від: 07, 08, 09, 10, 13, 14, 15. Оцінка: S.
 
 ## Мета
 
@@ -27,7 +27,7 @@
 1. Повна перевірка: чотири команди з [README.md](README.md) плюс `uv run pytest -m "slow or not slow"`.
 2. `uv version` → `pyretort 0.1.0`. Оновити CHANGELOG. Коміт `chore(release): v0.1.0`.
 3. `Remove-Item -Recurse -Force dist -ErrorAction SilentlyContinue; uv build --no-sources`.
-4. Перевірка колеса з чужої теки: `uv run --no-project --with "<repo>\dist\pyretort-0.1.0-py3-none-any.whl" -- pyretort version` → `PyRetort 0.1.0`; `uv tool install "<repo>\dist\pyretort-0.1.0-py3-none-any.whl"` → `pyretort build -p examples/hello-cli/pyproject.toml` працює без `uv run`; потім `uv tool uninstall pyretort`.
+4. Перевірка колеса з чужої теки: `uv run --no-project --with "<repo>\dist\pyretort-0.1.0-py3-none-any.whl" -- pyretort version` → `PyRetort 0.1.0`; `uv tool install "<repo>\dist\pyretort-0.1.0-py3-none-any.whl"` → `pyretort build -p examples/hello-cli/pyproject.toml` працює без `uv run`; `examples\hello-cli\build\hello-cli-0.1.0-amd64\hello-cli.exe arg1 "two words" "a&b"` з іншої теки друкує `Arguments: ['arg1', 'two words', 'a&b']` (лаунчер із задачі 15); потім `pyretort cleanup -p examples/hello-cli/pyproject.toml` і `uv tool uninstall pyretort`.
 5. `git tag -a v0.1.0 -m "PyRetort 0.1.0"`.
 6. Спитати користувача про злиття гілки задачі в `develop`, `git push --follow-tags` і реліз на GitHub; виконати після згоди. Опційно PyPI (пункт 4 рішень).
 

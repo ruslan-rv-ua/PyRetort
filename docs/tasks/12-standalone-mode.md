@@ -13,6 +13,7 @@
 - Embedded Python: `._pth` перелічує теки для `sys.path` і вмикає `site` рядком `import site`; документація Python прямо каже, що сторонні пакети для embeddable distribution треба постачати разом із застосунком. Для скрипта, запущеного як `python.exe шлях\main.py`, Python сам додає теку скрипта в `sys.path[0]`.
 - Встановлення лише залежностей без самого проєкту: `uv pip install --python <embedded python.exe> -r pyproject.toml` — uv читає `[project].dependencies` з `pyproject.toml` як файл вимог (документація uv «Installing packages»; uv 0.12: `-r, --requirements <REQUIREMENTS>  Install the packages listed in the given files`). Перевірити на практиці першим кроком задачі: тимчасовий проєкт з однією залежністю й без `[build-system]`, виконати команду і переконатися, що в site-packages з'явилася залежність, а проєкт — ні.
 - Розкладка режиму пакета після 0.1: `build/<dist_name>/<slug-dash>.exe` і `build/<dist_name>/<slug-dash>/` (Python + site-packages).
+- Лаунчер — власний, із задачі 15: запускає команду без `cmd.exe` і допускає кілька токенів у лапках. Зі старим шаблоном gen-exe команда з рішення 6 (два шляхи в лапках) не стартувала.
 - Приклад для режиму: `examples/SystemMonitor` (видалений у задачі 10; відновлюється командою `git checkout 3f3e0f4 -- examples/SystemMonitor`): `app.py` у корені, залежності в `pyproject.toml`, без пакета.
 
 ## Рішення
