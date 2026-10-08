@@ -11,7 +11,7 @@ from pyretort.types import BuildBackend, BuildConfig
 def build_command(
     ctx: typer.Context,
     pyproject_toml: Path = typer.Option(
-        Path.cwd() / "pyproject.toml",
+        Path("pyproject.toml"),
         "--pyproject-toml",
         "-p",
         exists=True,
@@ -26,13 +26,13 @@ def build_command(
         config = BuildConfig.from_pyproject_toml(pyproject_toml)
     except FileNotFoundError:
         typer.echo(f"Configuration file not found: {pyproject_toml}", err=True)
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
     except tomllib.TOMLDecodeError as e:
         typer.echo(f"Invalid TOML syntax in {pyproject_toml}: {e}", err=True)
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
     except ValueError as e:
         typer.echo(f"Invalid configuration: {e}", err=True)
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     match config.build_backend:
         case BuildBackend.UV:

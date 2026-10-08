@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import struct
 from pathlib import Path
-from typing import Any, BinaryIO, List, Optional, Tuple
+from typing import Any, BinaryIO
 
 import win32api
 
@@ -97,13 +97,13 @@ RT_ICON = 3
 RT_GROUP_ICON = 14
 
 
-class DataStruct(object):
+class DataStruct:
     """General class for handling data structures within a file."""
 
     def __init__(
         self,
-        dtype: Tuple[Tuple[str, ...], str],
-        input_stream: Optional[BinaryIO] = None,
+        dtype: tuple[tuple[str, ...], str],
+        input_stream: BinaryIO | None = None,
     ):
         """Initialize a new instance of the DataStruct class.
 
@@ -172,13 +172,13 @@ class DataStruct(object):
     def _get_data(self) -> bytes:
         return struct.pack(self._data_types, *self._data)
 
-    def _copy(self, data_struct: "DataStruct"):
+    def _copy(self, data_struct: DataStruct):
         for field_name in data_struct._field_names:
             if field_name in self._field_names:
                 setattr(self, field_name, getattr(data_struct, field_name))
 
 
-class Icon(object):
+class Icon:
     """Class to extract the relevant data from a .ico file."""
 
     def __init__(self, file_name: Path):
@@ -196,7 +196,7 @@ class Icon(object):
                 DataStruct(dtype=ICONDIRENTRY, input_stream=f)
                 for _ in range(self._header.idCount)
             ]
-            self._icon_data: List[bytes] = []
+            self._icon_data: list[bytes] = []
             for entry in self._dir_entries:
                 f.seek(entry.dwImageOffset, 0)
                 self._icon_data.append(f.read(entry.dwBytesInRes))
@@ -210,7 +210,7 @@ class Icon(object):
             data += icon_dir_entry._get_data()
         return data
 
-    def _get_icon_data(self) -> List[bytes]:
+    def _get_icon_data(self) -> list[bytes]:
         return self._icon_data
 
 

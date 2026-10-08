@@ -102,7 +102,7 @@ class BuildConfig(BaseModel):
             valid = [a.value for a in PythonArchitecture]
             raise ValueError(
                 f"Invalid python_architecture: '{v}'. Valid values: {', '.join(valid)}"
-            )
+            ) from None
 
     @field_validator("build_backend", mode="before")
     @classmethod
@@ -119,7 +119,7 @@ class BuildConfig(BaseModel):
             valid = [b.value for b in BuildBackend]
             raise ValueError(
                 f"Invalid build-backend: '{v}'. Valid values: {', '.join(valid)}"
-            )
+            ) from None
 
     @field_validator("project_source_subdir_rel_path")
     @classmethod
@@ -182,7 +182,7 @@ class BuildConfig(BaseModel):
         return f"{self.project_name_slug_dash}-{self.project_version}-{self.python_architecture}"
 
     @classmethod
-    def from_pyproject_toml(cls, pyproject_path: Path | str) -> "BuildConfig":
+    def from_pyproject_toml(cls, pyproject_path: Path | str) -> BuildConfig:
         """
         Create BuildConfig from pyproject.toml file.
 

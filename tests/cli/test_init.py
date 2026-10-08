@@ -168,9 +168,7 @@ class TestInitCommand:
         assert result.exit_code == 0
         assert result.output == ""
 
-    def test_init_architecture_comment_lists_valid_values(
-        self, tmp_path: Path
-    ) -> None:
+    def test_init_architecture_comment_lists_valid_values(self, tmp_path: Path) -> None:
         """Test that the architecture comment lists the accepted values."""
         pyproject = tmp_path / "pyproject.toml"
         data = {

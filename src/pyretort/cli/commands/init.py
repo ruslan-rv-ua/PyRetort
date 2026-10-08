@@ -19,7 +19,7 @@ from pyretort.types import PythonArchitecture
 def init_command(
     ctx: typer.Context,
     pyproject_toml_path: Path = typer.Option(
-        Path.cwd() / "pyproject.toml",
+        Path("pyproject.toml"),
         "--pyproject-toml",
         "-p",
         exists=True,
