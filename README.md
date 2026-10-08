@@ -77,9 +77,9 @@ PyRetort builds a project that has:
 - a package with a `__main__.py`: the launcher starts the application with
   `python -m <package>`.
 
-A project without a package, for example one created with plain `uv init`, is
-built in [standalone mode](#standalone-mode) instead: the build copies the
-sources and the launcher runs a script.
+A project without a package, for example one created with
+`uv init --no-package`, is built in [standalone mode](#standalone-mode)
+instead: the build copies the sources and the launcher runs a script.
 
 A project created with `uv init --package` lacks only the `__main__.py`:
 
@@ -194,9 +194,9 @@ create_dist_zip_file = true
 ### Standalone mode
 
 Choose `install_as_package = false` for a project that is not a package: a
-script with the modules it imports next to it, as plain `uv init` creates.
-Such a project needs neither a `[build-system]` table nor a `__main__.py`;
-the launcher runs `main_file` as a script.
+script with the modules it imports next to it, as `uv init --no-package`
+creates. Such a project needs neither a `[build-system]` table nor a
+`__main__.py`; the launcher runs `main_file` as a script.
 
 ```toml
 [tool.pyretort]

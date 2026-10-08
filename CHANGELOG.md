@@ -10,7 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Standalone mode: `install_as_package = false` builds a project that is not
-  a package, as plain `uv init` creates it, without a `[build-system]` table.
+  a package, as `uv init --no-package` creates it, without a `[build-system]`
+  table.
   The build copies `project_source_subdir` into `<name>\app` of the
   application folder, installs `[project].dependencies` with
   `uv pip install -r pyproject.toml` and makes the launcher run `main_file`
