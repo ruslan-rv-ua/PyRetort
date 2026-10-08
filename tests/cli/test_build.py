@@ -1,14 +1,66 @@
 """Tests for pyretort.cli.commands.build command."""
 
+from collections.abc import Iterator
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
 import tomli_w
 from typer.testing import CliRunner
 
+from pyretort.builder.errors import BuildError
 from pyretort.cli import app
 
 runner = CliRunner()
+
+
+@pytest.fixture
+def offline_build(tmp_path: Path) -> Iterator[None]:
+    """Run the real UVBuilder with the download, uv and the launcher replaced."""
+    with (
+        patch("pyretort.builder.uv_builder.PydistManager") as pydist_manager_class,
+        patch("subprocess.run"),
+        patch("shutil.which", return_value="C:\\tools\\uv.exe"),
+        patch("pyretort.builder.uv_builder.generate_exe"),
+    ):
+        pydist_manager_class.return_value.python_executable = (
+            tmp_path / "build" / "test-app-0.1.0-amd64" / "test-app" / "python.exe"
+        )
+        yield
+
+
+@pytest.mark.usefixtures("offline_build")
+class TestBuildCommandOutput:
+    """Tests for what the build command prints."""
+
+    def test_build_prints_progress(
+        self, tmp_path: Path, valid_pyproject_toml: Path
+    ) -> None:
+        """Test that the build stages and the final result are printed."""
+        result = runner.invoke(app, ["build", "-p", str(valid_pyproject_toml)])
+
+        assert result.exit_code == 0, result.output
+        assert "Installing embedded Python 3.13.0 (amd64)" in result.output
+        app_dir = tmp_path / "build" / "test-app-0.1.0-amd64"
+        assert result.output.endswith(f"Build complete: {app_dir}\n")
+
+    def test_build_quiet_prints_nothing(self, valid_pyproject_toml: Path) -> None:
+        """Test that quiet mode suppresses the progress but still builds."""
+        result = runner.invoke(app, ["-q", "build", "-p", str(valid_pyproject_toml)])
+
+        assert result.exit_code == 0
+        assert result.output == ""
+
+    def test_build_quiet_hides_config_errors(
+        self, invalid_pyproject_missing_fields: Path
+    ) -> None:
+        """Test that quiet mode hides configuration errors but keeps exit code 1."""
+        result = runner.invoke(
+            app, ["-q", "build", "-p", str(invalid_pyproject_missing_fields)]
+        )
+
+        assert result.exit_code == 1
+        assert result.output == ""
 
 
 class TestBuildCommand:
@@ -183,36 +235,17 @@ class TestBuildCommandEdgeCases:
 
         assert result.exit_code != 0
 
-    def test_build_builder_exception(self, tmp_path: Path) -> None:
-        """Test build command handles builder exceptions."""
-        pyproject = tmp_path / "pyproject.toml"
-        data = {
-            "project": {
-                "name": "test-app",
-                "version": "0.1.0",
-                "dependencies": [],
-            },
-            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
-            "tool": {
-                "pyretort": {
-                    "project_source_subdir": "src",
-                    "python_version": "3.13.0",
-                    "python_architecture": "amd64",
-                    "install_as_package": True,
-                    "show_console_window": False,
-                    "create_dist_zip_file": True,
-                }
-            },
-        }
-        pyproject.write_bytes(tomli_w.dumps(data).encode())
-        (tmp_path / "src").mkdir()
-        (tmp_path / "src" / "__main__.py").write_text("")
-
+    def test_build_reports_build_error_without_traceback(
+        self, valid_pyproject_toml: Path
+    ) -> None:
+        """Test that a BuildError from the builder is printed as is, with exit code 1."""
         mock_builder_instance = MagicMock()
-        mock_builder_instance.build.side_effect = RuntimeError("Build failed")
+        mock_builder_instance.build.side_effect = BuildError("boom")
         mock_builder_class = MagicMock(return_value=mock_builder_instance)
 
         with patch("pyretort.builder.uv_builder.UVBuilder", mock_builder_class):
-            result = runner.invoke(app, ["build", "-p", str(pyproject)])
+            result = runner.invoke(app, ["build", "-p", str(valid_pyproject_toml)])
 
-            assert result.exit_code != 0
+        assert result.exit_code == 1
+        assert "boom" in result.stderr
+        assert "Traceback" not in result.output
