@@ -20,7 +20,7 @@
 
 ## check-project-name
 
-Перевірка `[project].name` за PEP 508 у `check`. Ім'я з пробілом (`System Monitor`) зараз проходить `check`, а збірка падає вже на кроці uv (`Not a valid package or extra name`) — в обох режимах; див. задачу 12, факт 6.
+Перевірка `[project].name` за PEP 508 у `check`. Ім'я з пробілом (`System Monitor`) зараз проходить `check`, а збірка падає вже на кроці uv (`Not a valid package or extra name`) — в обох режимах; див. [задачу 12](https://github.com/ruslan-rv-ua/PyRetort/blob/v0.2.0/docs/tasks/12-standalone-mode.md), факт 6.
 
 ## check-python-version-exists
 
@@ -32,7 +32,7 @@
 
 ## init-after-plain-uv-init
 
-`init` для проєкту після простого `uv init`. З uv 0.12 це пакет `src/<slug>/` без `__main__.py`, з `main()` в `__init__.py` і `[project.scripts]` (`my-app = "my_app:main"`), тож `init` лише попереджає про `__main__.py`. Варіанти: підказати вміст `__main__.py` або запускати точку входу з `[project.scripts]`. Див. задачу 21, «Контекст».
+`init` для проєкту після простого `uv init`. З uv 0.12 це пакет `src/<slug>/` без `__main__.py`, з `main()` в `__init__.py` і `[project.scripts]` (`my-app = "my_app:main"`), тож `init` лише попереджає про `__main__.py`. Варіанти: підказати вміст `__main__.py` або запускати точку входу з `[project.scripts]`. Див. [задачу 21](https://github.com/ruslan-rv-ua/PyRetort/blob/v0.2.0/docs/tasks/21-init-detects-standalone.md), «Контекст».
 
 ## init-finds-icon
 
