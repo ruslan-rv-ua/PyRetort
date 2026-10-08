@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import tomllib
+from dataclasses import dataclass
 from enum import StrEnum
 from hashlib import sha256
 from pathlib import Path
@@ -18,36 +19,45 @@ class PythonArchitecture(StrEnum):
     ARM64 = "arm64"
 
 
-def derive_main_module(source_subdir: Path, project_name: str) -> str:
-    """Return the module the launcher runs with ``python -m``.
+@dataclass(frozen=True)
+class LauncherEntryPoint:
+    """What the generated launcher runs: ``python -m <module>``.
 
-    The package directory named by ``source_subdir`` (``src/simple_rss`` ->
-    ``simple_rss``), or the underscore slug of the project name when the
-    sources live in the project root (``.``).
+    ``dunder_main`` is the ``__main__.py`` that makes the module runnable;
+    ``single_module`` is the ``<module>.py`` alternative, accepted only when
+    the sources live in the project root.
+    """
+
+    module: str
+    dunder_main: Path
+    single_module: Path | None = None
+
+    def exists(self) -> bool:
+        """Return True if ``python -m <module>`` would find an entry point."""
+        if self.dunder_main.is_file():
+            return True
+        return self.single_module is not None and self.single_module.is_file()
+
+
+def launcher_entry_point(
+    project_dir: Path, source_subdir: Path, project_name: str
+) -> LauncherEntryPoint:
+    """Derive the launcher entry point from the source layout.
+
+    A source subdirectory other than ``.`` names the package directory
+    (``src/simple_rss`` -> ``python -m simple_rss``); for sources in the project
+    root the module is the underscore slug of the project name.
     """
     if source_subdir != Path("."):
-        return source_subdir.name
-    return slugify(project_name, separator="_")
+        module = source_subdir.name
+        return LauncherEntryPoint(module, project_dir / source_subdir / "__main__.py")
 
-
-def missing_dunder_main(
-    project_dir: Path, source_subdir: Path, main_module: str
-) -> Path | None:
-    """Return the ``__main__.py`` that ``python -m <main_module>`` needs, if absent.
-
-    A package directory (``source_subdir`` other than ``.``) must contain
-    ``__main__.py``. When the sources live in the project root, either
-    ``<main_module>/__main__.py`` or a single module ``<main_module>.py`` will do.
-    Returns None when an entry point exists.
-    """
-    if source_subdir != Path("."):
-        dunder_main = project_dir / source_subdir / "__main__.py"
-        return None if dunder_main.is_file() else dunder_main
-
-    dunder_main = project_dir / main_module / "__main__.py"
-    if dunder_main.is_file() or (project_dir / f"{main_module}.py").is_file():
-        return None
-    return dunder_main
+    module = slugify(project_name, separator="_")
+    return LauncherEntryPoint(
+        module,
+        project_dir / module / "__main__.py",
+        single_module=project_dir / f"{module}.py",
+    )
 
 
 class BuildConfig(BaseModel):
@@ -186,9 +196,11 @@ class BuildConfig(BaseModel):
     @property
     def main_module(self) -> str:
         """Module the launcher runs with 'python -m': 'src/simple_rss' -> 'simple_rss'."""
-        return derive_main_module(
-            self.project_source_subdir_rel_path, self.project_name
-        )
+        return launcher_entry_point(
+            self.project_dir_abs_path,
+            self.project_source_subdir_rel_path,
+            self.project_name,
+        ).module
 
     @classmethod
     def from_pyproject_toml(cls, pyproject_path: Path | str) -> BuildConfig:
@@ -340,14 +352,13 @@ class BuildConfig(BaseModel):
                 f"'create_dist_zip_file' must be a boolean, got {type(create_dist_zip_file).__name__}"
             )
 
-        # Validate the entry point: the launcher runs 'python -m <main_module>'
-        main_module = derive_main_module(source_subdir, project["name"])
-        dunder_main = missing_dunder_main(project_dir, source_subdir, main_module)
-        if dunder_main is not None:
+        # Validate the entry point: the launcher runs 'python -m <module>'
+        entry_point = launcher_entry_point(project_dir, source_subdir, project["name"])
+        if not entry_point.exists():
             raise ValueError(
-                f"Package mode requires '{dunder_main}': the launcher runs "
-                f"'python -m {main_module}'. Point project_source_subdir at the "
-                "package directory or add __main__.py."
+                f"Package mode requires '{entry_point.dunder_main}': the launcher "
+                f"runs 'python -m {entry_point.module}'. Point project_source_subdir "
+                "at the package directory or add __main__.py."
             )
 
         # Extract configuration with defaults

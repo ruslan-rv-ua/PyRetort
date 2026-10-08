@@ -327,7 +327,7 @@ class TestInitCommandSourceDiscovery:
         updated_data = tomllib.loads(pyproject.read_text(encoding="utf-8"))
         source_subdir = updated_data["tool"]["pyretort"]["project_source_subdir"]
 
-        assert "src" in source_subdir or source_subdir == "."
+        assert source_subdir == "src/my_project"
 
     def test_init_discovers_flat_layout(self, tmp_path: Path) -> None:
         """Test that init discovers flat layout."""

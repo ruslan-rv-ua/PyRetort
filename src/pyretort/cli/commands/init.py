@@ -15,7 +15,7 @@ from pyretort.constants import (
     INSTALL_AS_PACKAGE_DEFAULT,
     SHOW_CONSOLE_DEFAULT,
 )
-from pyretort.types import PythonArchitecture, derive_main_module, missing_dunder_main
+from pyretort.types import PythonArchitecture, launcher_entry_point
 
 
 def init_command(
@@ -65,12 +65,11 @@ def init_command(
     )
     echo(ctx, "  2. Run 'pyretort build' to create the distributable package.")
 
-    main_module = derive_main_module(Path(source_subdir), project_name)
-    dunder_main = missing_dunder_main(project_path, Path(source_subdir), main_module)
-    if dunder_main is not None:
+    entry_point = launcher_entry_point(project_path, source_subdir, project_name)
+    if not entry_point.exists():
         echo(
             ctx,
-            f"warning: {dunder_main} not found; "
+            f"warning: {entry_point.dunder_main} not found; "
             "'pyretort build' will fail until it exists",
         )
 
@@ -93,7 +92,7 @@ def _set_pyretort_section(
     tool_section["pyretort"] = pyretort_config
 
 
-def _build_pyretort_section(project_path: Path, source_subdir: str) -> Table:
+def _build_pyretort_section(project_path: Path, source_subdir: Path) -> Table:
     """Build the commented [tool.pyretort] section for the project."""
 
     pyretort_config: Table = tomlkit.table()
@@ -109,7 +108,7 @@ def _build_pyretort_section(project_path: Path, source_subdir: str) -> Table:
             '(the project name slug when ".")'
         )
     )
-    pyretort_config["project_source_subdir"] = source_subdir
+    pyretort_config["project_source_subdir"] = source_subdir.as_posix()
 
     pyretort_config.add(
         tomlkit.comment(
@@ -163,15 +162,15 @@ def _build_pyretort_section(project_path: Path, source_subdir: str) -> Table:
     return pyretort_config
 
 
-def _find_project_source_subdir(project_path: Path, project_name: str) -> str:
+def _find_project_source_subdir(project_path: Path, project_name: str) -> Path:
     """Attempt to find the main source subdirectory of the project."""
     common_dirs = [".", "src", "source", "app", "lib"]
     slugified_name = slugify(project_name, separator="_")
     for dir_name in common_dirs:
         candidate = project_path / dir_name / slugified_name
         if candidate.is_dir():
-            return candidate.relative_to(project_path).as_posix()
-    return "."  # Default to project root if no common source dir found
+            return candidate.relative_to(project_path)
+    return Path(".")  # Default to project root if no common source dir found
 
 
 def _find_main_file(source_dir: Path) -> str | None:
