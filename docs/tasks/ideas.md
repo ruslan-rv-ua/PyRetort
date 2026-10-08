@@ -12,7 +12,7 @@
 
 | Версія | Тип | Ідеї й задачі | Чому разом |
 |---|---|---|---|
-| 0.2.1 | патч | [задача 25](25-check-project-name-version.md), [init-respects-requires-python](#init-respects-requires-python) | `check` і `init` пропускають конфігурацію, на якій падає збірка; обидва виправлення — без мережі й нових полів |
+| 0.2.1 | патч | [задача 25](25-check-project-name-version.md), [задача 26](26-init-warns-requires-python.md) | `check` і `init` пропускають конфігурацію, на якій падає збірка; обидва виправлення — без мережі й нових полів |
 | 0.3.0 | мінорна | [build-from-uv-lock](#build-from-uv-lock), [build-standalone-excludes](#build-standalone-excludes) | Контроль над тим, що потрапляє в застосунок: перевірені версії залежностей з `uv.lock` замість найновіших і власні виключення для джерел |
 | 0.4.0 | мінорна | [init-after-plain-uv-init](#init-after-plain-uv-init), [check-python-version-exists](#check-python-version-exists), [init-finds-icon](#init-finds-icon), [cleanup-dry-run](#cleanup-dry-run) | Менше ручної роботи: проєкт після звичайного `uv init` доходить до збірки без правок, версію Python перевіряють до збірки, іконку знаходить `init`, `cleanup` показує, що видалить |
 | 0.5.0 | мінорна | [build-smaller-dist](#build-smaller-dist) | Спершу дослідження: що можна прибрати без поломок, адже без `*.dist-info` не працює `importlib.metadata` |
@@ -40,7 +40,7 @@
 
 ## check-python-version-exists
 
-Перевірка під час `check`, що для обраної `python_version` на python.org є вбудовуваний архів: у security-релізів його немає, і збірка падає вже на завантаженні. Тим самим списком версій `init` може обирати версію з архівом, що задовольняє `requires-python` (друга половина [init-respects-requires-python](#init-respects-requires-python)).
+Перевірка під час `check`, що для обраної `python_version` на python.org є вбудовуваний архів: у security-релізів його немає, і збірка падає вже на завантаженні. Тим самим списком версій `init` може обирати версію з архівом, що задовольняє `requires-python`, замість лише попереджати про розбіжність, як після [задачі 26](26-init-warns-requires-python.md).
 
 ## cleanup-dry-run
 
@@ -53,7 +53,3 @@
 ## init-finds-icon
 
 Автопошук `.ico` у проєкті під час `init`.
-
-## init-respects-requires-python
-
-`init` пише в `python_version` версію Python, на якому працює PyRetort, а `uv init` пише в `requires-python` нижню межу за версією свого Python. Коли вони розходяться (наприклад, PyRetort на 3.13, а `requires-python = ">=3.14"`), `check` у standalone-режимі падає одразу після `init`. Попереджати про це в `init`; брати версію, що задовольняє `requires-python`, — частина [check-python-version-exists](#check-python-version-exists), бо для цього потрібен список версій із python.org.
