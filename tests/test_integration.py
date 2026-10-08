@@ -1,10 +1,9 @@
 """Integration tests for PyRetort.
 
-These tests verify end-to-end functionality and require network access for some tests.
+These tests verify that components work together; some require network access.
 """
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 import tomli_w
@@ -186,48 +185,3 @@ class TestNetworkIntegration:
         assert archive_path.exists()
         assert archive_path.suffix == ".zip"
         assert archive_path.stat().st_size > 0
-
-
-@pytest.mark.slow
-@pytest.mark.e2e
-class TestEndToEnd:
-    """End-to-end tests for complete build process."""
-
-    def test_complete_build_mocked(self, tmp_path: Path) -> None:
-        """Test complete build process with mocked network."""
-        pyproject = tmp_path / "pyproject.toml"
-        data = {
-            "project": {
-                "name": "e2e-test-app",
-                "version": "0.1.0",
-                "dependencies": [],
-            },
-            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
-            "tool": {
-                "pyretort": {
-                    "project_source_subdir": "src/e2e_test_app",
-                    "main_file": "main.py",
-                    "install_as_package": True,
-                    "python_version": "3.13.0",
-                    "python_architecture": "amd64",
-                    "show_console_window": False,
-                    "create_dist_zip_file": False,
-                }
-            },
-        }
-        pyproject.write_bytes(tomli_w.dumps(data).encode())
-
-        source_dir = tmp_path / "src" / "e2e_test_app"
-        source_dir.mkdir(parents=True)
-        (source_dir / "__init__.py").write_text("")
-        (source_dir / "__main__.py").write_text("")
-        (source_dir / "main.py").write_text("print('E2E Test')")
-
-        mock_builder = MagicMock()
-        mock_builder_class = MagicMock(return_value=mock_builder)
-
-        with patch("pyretort.builder.uv_builder.UVBuilder", mock_builder_class):
-            result = runner.invoke(app, ["build", "-p", str(pyproject)])
-
-            assert result.exit_code == 0
-            mock_builder.build.assert_called_once()

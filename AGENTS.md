@@ -92,6 +92,16 @@ Use pytest for writing and running unit tests in this Python project. Ensure all
   ```
   Запускаються лише тести з маркером `slow`.
 
+- **Наскрізні тести (справжня збірка і запуск exe):**
+  ```
+  uv run pytest -m e2e
+  ```
+  `tests/test_e2e_build.py` збирає крихітний проєкт справжнім `pyretort build` і запускає згенерований exe. Потрібні `uv` у PATH та інтернет: збірка завантажує embedded Python з python.org, а uv — бекенд `uv_build`. Щоб не завантажувати архів Python щоразу, вкажи у `PYRETORT_E2E_DOWNLOAD_DIR` теку, де вже лежить архів тієї версії, яку очікує тест (`EMBEDDED_PYTHON_ZIP` у `tests/test_e2e_build.py`), наприклад `downloads/` проєкту, зібраного з такою ж `python_version`:
+  ```
+  $env:PYRETORT_E2E_DOWNLOAD_DIR = "examples\Simple RSS\downloads"
+  uv run pytest -m e2e
+  ```
+
 - **Всі тести (швидкі та повільні):**
   ```
   uv run pytest -m "slow or not slow"
