@@ -49,6 +49,7 @@ class TestBuildConfigIntegration:
         source_dir = tmp_path / "src" / "integration_test_app"
         source_dir.mkdir(parents=True)
         (source_dir / "__init__.py").write_text("")
+        (source_dir / "__main__.py").write_text("")
         (source_dir / "main.py").write_text("print('Hello')")
 
         config = BuildConfig.from_pyproject_toml(pyproject)
@@ -103,6 +104,8 @@ class TestCLIWorkflow:
         source_dir.mkdir(parents=True)
         # Create main.py file that init command will find
         (source_dir / "main.py").write_text("print('hello')")
+        # Create __main__.py so that check accepts the package the launcher runs
+        (source_dir / "__main__.py").write_text("")
 
         init_result = runner.invoke(app, ["init", "-p", str(pyproject)])
         assert init_result.exit_code == 0
@@ -194,6 +197,7 @@ class TestEndToEnd:
         source_dir = tmp_path / "src" / "e2e_test_app"
         source_dir.mkdir(parents=True)
         (source_dir / "__init__.py").write_text("")
+        (source_dir / "__main__.py").write_text("")
         (source_dir / "main.py").write_text("print('E2E Test')")
 
         mock_builder = MagicMock()

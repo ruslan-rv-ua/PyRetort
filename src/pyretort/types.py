@@ -33,6 +33,38 @@ class BuildBackend(StrEnum):
     UV = "uv_build"
 
 
+def derive_main_module(source_subdir: Path, project_name: str) -> str:
+    """Return the module the launcher runs with ``python -m``.
+
+    The package directory named by ``source_subdir`` (``src/simple_rss`` ->
+    ``simple_rss``), or the underscore slug of the project name when the
+    sources live in the project root (``.``).
+    """
+    if source_subdir != Path("."):
+        return source_subdir.name
+    return slugify(project_name, separator="_")
+
+
+def missing_dunder_main(
+    project_dir: Path, source_subdir: Path, main_module: str
+) -> Path | None:
+    """Return the ``__main__.py`` that ``python -m <main_module>`` needs, if absent.
+
+    A package directory (``source_subdir`` other than ``.``) must contain
+    ``__main__.py``. When the sources live in the project root, either
+    ``<main_module>/__main__.py`` or a single module ``<main_module>.py`` will do.
+    Returns None when an entry point exists.
+    """
+    if source_subdir != Path("."):
+        dunder_main = project_dir / source_subdir / "__main__.py"
+        return None if dunder_main.is_file() else dunder_main
+
+    dunder_main = project_dir / main_module / "__main__.py"
+    if dunder_main.is_file() or (project_dir / f"{main_module}.py").is_file():
+        return None
+    return dunder_main
+
+
 class BuildConfig(BaseModel):
     # build hash based on python version, architecture, dependencies
     build_hash: str
@@ -181,6 +213,14 @@ class BuildConfig(BaseModel):
         """Distribution name: 'my-app-0.1.0-amd64'."""
         return f"{self.project_name_slug_dash}-{self.project_version}-{self.python_architecture}"
 
+    @computed_field  # type: ignore[prop-decorator]  # mypy: unsupported on @property
+    @property
+    def main_module(self) -> str:
+        """Module the launcher runs with 'python -m': 'src/simple_rss' -> 'simple_rss'."""
+        return derive_main_module(
+            self.project_source_subdir_rel_path, self.project_name
+        )
+
     @classmethod
     def from_pyproject_toml(cls, pyproject_path: Path | str) -> BuildConfig:
         """
@@ -328,6 +368,17 @@ class BuildConfig(BaseModel):
             raise ValueError(
                 f"'create_dist_zip_file' must be a boolean, got {type(create_dist_zip_file).__name__}"
             )
+
+        # Validate the entry point: the launcher runs 'python -m <main_module>'
+        if install_as_package is not False:
+            main_module = derive_main_module(source_subdir, project["name"])
+            dunder_main = missing_dunder_main(project_dir, source_subdir, main_module)
+            if dunder_main is not None:
+                raise ValueError(
+                    f"Package mode requires '{dunder_main}': the launcher runs "
+                    f"'python -m {main_module}'. Point project_source_subdir at the "
+                    "package directory or add __main__.py."
+                )
 
         # Extract configuration with defaults
         config_data = {

@@ -57,6 +57,7 @@ class TestBuildCommand:
         }
         pyproject.write_bytes(tomli_w.dumps(data).encode())
         (tmp_path / "src").mkdir()
+        (tmp_path / "src" / "__main__.py").write_text("")
 
         mock_builder_instance = MagicMock()
         mock_builder_class = MagicMock(return_value=mock_builder_instance)
@@ -94,6 +95,7 @@ class TestBuildCommand:
         }
         pyproject.write_bytes(tomli_w.dumps(data).encode())
         (tmp_path / "src").mkdir()
+        (tmp_path / "src" / "__main__.py").write_text("")
 
         result = runner.invoke(app, ["build", "-p", str(pyproject)])
 
@@ -123,6 +125,7 @@ class TestBuildCommand:
         }
         pyproject.write_bytes(tomli_w.dumps(data).encode())
         (tmp_path / "src").mkdir()
+        (tmp_path / "src" / "__main__.py").write_text("")
 
         result = runner.invoke(app, ["build", "-p", str(pyproject)])
 
@@ -161,6 +164,7 @@ class TestBuildCommandEdgeCases:
         }
         pyproject.write_bytes(tomli_w.dumps(data).encode())
         (tmp_path / "src").mkdir()
+        (tmp_path / "src" / "__main__.py").write_text("")
 
         mock_builder_instance = MagicMock()
         mock_builder_instance.build.side_effect = RuntimeError("Build failed")

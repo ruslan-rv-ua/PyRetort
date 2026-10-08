@@ -298,6 +298,36 @@ class TestBuildConfig:
         )
         assert config.show_console_window is False
 
+    def test_main_module_is_last_component_of_source_subdir(self) -> None:
+        """Test that main_module is the package directory named by the subdir."""
+        config = BuildConfig(
+            build_hash="test123",
+            project_dir_abs_path=Path("."),
+            project_name="My App",
+            project_version="1.0.0",
+            project_source_subdir_rel_path=Path("src/simple_rss"),
+            python_version="3.13.0",
+            python_architecture=PythonArchitecture.AMD64,
+            build_backend=BuildBackend.UV,
+            create_dist_zip_file=False,
+        )
+        assert config.main_module == "simple_rss"
+
+    def test_main_module_falls_back_to_project_slug_for_root_subdir(self) -> None:
+        """Test that main_module is the project slug when the subdir is '.'."""
+        config = BuildConfig(
+            build_hash="test123",
+            project_dir_abs_path=Path("."),
+            project_name="My App",
+            project_version="1.0.0",
+            project_source_subdir_rel_path=Path("."),
+            python_version="3.13.0",
+            python_architecture=PythonArchitecture.AMD64,
+            build_backend=BuildBackend.UV,
+            create_dist_zip_file=False,
+        )
+        assert config.main_module == "my_app"
+
 
 class TestBuildConfigFromPyprojectToml:
     """Tests for BuildConfig.from_pyproject_toml class method."""
@@ -389,11 +419,13 @@ class TestBuildConfigFromPyprojectToml:
         p1 = tmp_path / "proj1" / "pyproject.toml"
         p1.parent.mkdir()
         (p1.parent / "src").mkdir()
+        (p1.parent / "src" / "__main__.py").write_text("")
         p1.write_bytes(tomli_w.dumps(data1).encode())
 
         p2 = tmp_path / "proj2" / "pyproject.toml"
         p2.parent.mkdir()
         (p2.parent / "src").mkdir()
+        (p2.parent / "src" / "__main__.py").write_text("")
         p2.write_bytes(tomli_w.dumps(data2).encode())
 
         config1 = BuildConfig.from_pyproject_toml(p1)
@@ -708,6 +740,65 @@ class TestBuildConfigFromPyprojectToml:
             ValueError, match="Invalid build-backend: 'invalid_backend'"
         ):
             BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_from_pyproject_rejects_package_without_dunder_main(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that a package directory without __main__.py is rejected."""
+        import tomli_w
+
+        data = {
+            "project": {"name": "my-app", "version": "0.1.0", "dependencies": []},
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src/my_app",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": True,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        package_dir = tmp_path / "src" / "my_app"
+        package_dir.mkdir(parents=True)
+        (package_dir / "__init__.py").write_text("")
+
+        with pytest.raises(ValueError, match="__main__.py") as exc_info:
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+        assert "python -m my_app" in str(exc_info.value)
+        assert str(package_dir / "__main__.py") in str(exc_info.value)
+
+    def test_from_pyproject_accepts_single_module_in_root(self, tmp_path: Path) -> None:
+        """Test that a root subdir with '<main_module>.py' passes validation."""
+        import tomli_w
+
+        data = {
+            "project": {"name": "mytool", "version": "0.1.0", "dependencies": []},
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": ".",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": True,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+        (tmp_path / "mytool.py").write_text("print('hello')")
+
+        config = BuildConfig.from_pyproject_toml(pyproject_path)
+
+        assert config.main_module == "mytool"
 
     def test_source_subdir_does_not_exist(self, tmp_path: Path) -> None:
         """Test that ValueError is raised when source subdirectory doesn't exist."""

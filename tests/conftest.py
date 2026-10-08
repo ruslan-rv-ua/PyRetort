@@ -64,6 +64,7 @@ def valid_pyproject_toml(tmp_path: Path, valid_pyproject_data: dict[str, Any]) -
     source_dir.mkdir(parents=True, exist_ok=True)
     (source_dir / "main.py").write_text("print('hello')")
     (source_dir / "__init__.py").write_text("")
+    (source_dir / "__main__.py").write_text("")
 
     return pyproject_path
 
@@ -111,6 +112,7 @@ def invalid_pyproject_old_python(tmp_path: Path) -> Path:
     source_dir = tmp_path / "src" / "test_app"
     source_dir.mkdir(parents=True, exist_ok=True)
     (source_dir / "__init__.py").write_text("")
+    (source_dir / "__main__.py").write_text("")
 
     return pyproject_path
 

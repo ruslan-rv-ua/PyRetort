@@ -36,6 +36,7 @@ class TestCheckCommand:
         }
         pyproject.write_bytes(tomli_w.dumps(data).encode())
         (tmp_path / "src").mkdir()
+        (tmp_path / "src" / "__main__.py").write_text("")
 
         result = runner.invoke(app, ["check", "-p", str(pyproject)])
 
@@ -73,6 +74,7 @@ class TestCheckCommand:
         }
         pyproject.write_bytes(tomli_w.dumps(data).encode())
         (tmp_path / "src").mkdir()
+        (tmp_path / "src" / "__main__.py").write_text("")
 
         result = runner.invoke(app, ["check", "-p", str(pyproject)])
 
@@ -118,6 +120,7 @@ class TestCheckCommand:
         }
         pyproject.write_bytes(tomli_w.dumps(data).encode())
         (tmp_path / "src").mkdir()
+        (tmp_path / "src" / "__main__.py").write_text("")
 
         result = runner.invoke(app, ["--quiet", "check", "-p", str(pyproject)])
 
