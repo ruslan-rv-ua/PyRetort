@@ -47,6 +47,28 @@ class UVBuilder(BaseBuilder):
         raise NotImplementedError("Standalone build not implemented yet.")
 
     def _build_as_package(self) -> None:
+        pydist_manager = self._install_embedded_python()
+        pydist_manager.patch_pth_file(
+            version=self.config.python_version, relative_path_to_source="."
+        )
+        self.log("Installing project with uv")
+        self._uv_pip_install(
+            pydist_manager.python_executable, str(self.config.project_dir_abs_path)
+        )
+        python_exe_relative = pydist_manager.python_executable.relative_to(
+            self.app_path
+        )
+        main_module = self.config.main_module
+        self._generate_launcher(
+            f'"{{EXE_DIR}}\\{python_exe_relative}" -m {main_module}'
+        )
+
+    def _install_embedded_python(self) -> PydistManager:
+        """Download and unpack the embedded Python into build/<dist_name>/<name>/.
+
+        Return the manager of that Python. Raise BuildError when python.org has
+        no embeddable package for the version or the download fails.
+        """
         downloader = Downloader(self.download_path)
         pydist_manager = PydistManager(self.source_dist_path, downloader=downloader)
         version = self.config.python_version
@@ -72,33 +94,32 @@ class UVBuilder(BaseBuilder):
                 f"({architecture}): {e}\n"
                 "Check the internet connection and run the build again."
             ) from e
-        pydist_manager.patch_pth_file(version=version, relative_path_to_source=".")
-        command = [
-            "uv",
-            "pip",
-            "install",
-            "--python",
-            str(pydist_manager.python_executable),
-            str(self.config.project_dir_abs_path),
-        ]
-        self.log("Installing project with uv")
+        return pydist_manager
+
+    def _uv_pip_install(self, python_executable: Path, *args: str) -> None:
+        """Run 'uv pip install --python <python_executable> <args>'.
+
+        Raise BuildError with uv's exit code and stderr when it fails.
+        """
+        command = ["uv", "pip", "install", "--python", str(python_executable), *args]
         try:
             subprocess.run(command, capture_output=True, text=True, check=True)
         except subprocess.CalledProcessError as e:
             raise BuildError(
                 f"uv pip install failed with exit code {e.returncode}:\n{e.stderr}"
             ) from e
-        python_exe_relative = pydist_manager.python_executable.relative_to(
-            self.app_path
-        )
-        main_module = self.config.main_module
-        command_str = f'"{{EXE_DIR}}\\{python_exe_relative}" -m {main_module}'
+
+    def _generate_launcher(self, command: str) -> None:
+        """Write build/<dist_name>/<name>.exe, the launcher that runs command.
+
+        Raise BuildError when the command is longer than the launcher can hold.
+        """
         exe_path = self.app_path / f"{self.config.project_name_slug_dash}.exe"
         self.log(f"Generating launcher {exe_path}")
         try:
             generate_exe(
                 target=exe_path,
-                command=command_str,
+                command=command,
                 icon_file=self.config.icon_file_abs_path,
                 show_console=self.config.show_console_window,
                 architecture=self.config.python_architecture,
