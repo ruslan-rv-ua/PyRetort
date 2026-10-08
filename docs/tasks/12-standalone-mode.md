@@ -19,12 +19,15 @@
 ## Рішення
 
 1. **Розкладка.** `build/<dist_name>/<slug-dash>.exe`; `build/<dist_name>/<slug-dash>/` — embedded Python і залежності (як у режимі пакета); `build/<dist_name>/app/` — копія `project_source_subdir`.
-2. **Копіювання.** `shutil.copytree(src=project_dir / subdir, dst=app_path / "app", ignore=shutil.ignore_patterns(*DEFAULT_BLACKLIST))`. Якщо subdir = `.`, копіюється весь корінь проєкту крім шаблонів зі списку; переконатися, що `downloads` і `uv.lock` є в `DEFAULT_BLACKLIST`, інакше додати.
+2. **Копіювання.** `shutil.copytree(src=project_dir / subdir, dst=app_path / "app", ignore=shutil.ignore_patterns(*DEFAULT_BLACKLIST))`. Якщо subdir = `.`, копіюється весь корінь проєкту крім шаблонів зі списку. `DEFAULT_BLACKLIST` досі ніде не використовувався, тож його вміст звіряється вперше:
+   - `downloads` і `uv.lock` мають бути в списку, інакше додати;
+   - додати `tests`: тести застосунку в дистрибутиві не потрібні, а `ignore_patterns` відкидає і вкладені теки `tests/` (чернетки старого дизайну теж виключали `tests` за замовчуванням);
+   - прибрати `*.dll` і `*.pyd`: вони потрапили туди зі списків для `.gitignore`, але в джерелах застосунку це бінарні модулі й бібліотеки (наприклад, для `ctypes`), без яких застосунок не запуститься.
 3. **Залежності.** `uv pip install --python <embedded> -r <project_dir>/pyproject.toml`. Проєкт без `[project].dependencies` → крок пропускається з повідомленням у `log`. `[build-system]` для standalone не потрібен: прибрати цю вимогу з `from_pyproject_toml` для цього режиму.
 4. **Валідація** у `from_pyproject_toml` для `install_as_package = false`: `main_file` обов'язковий; `__main__.py` не потрібен; повідомлення «not supported yet» видалити.
 5. **`._pth`:** як у режимі пакета (`python3XX.zip`, `.`, `import site`); тека `app` не додається, бо скрипт запускається напряму.
 6. **Лаунчер:** `"{EXE_DIR}\<slug-dash>\python.exe" "{EXE_DIR}\app\<main_file>"`. Ліміт довжини — 1023 одиниці UTF-16 (задача 15).
-7. **`init`:** коментар до `install_as_package` стає `true: install the project as a package and run python -m <module>; false: copy sources and run main_file as a script`; якщо `__main__.py` не знайдено, а `main_file` знайдено — `init` записує `install_as_package = false`.
+7. **`init`:** коментар до `install_as_package` стає `true: install the project as a package and run python -m <module>; false: copy sources and run main_file as a script`; якщо `__main__.py` не знайдено, а `main_file` знайдено — `init` записує `install_as_package = false`. `_find_main_file` шукає `main.py`, `app.py`, `cli.py`, `run.py` у такому порядку (зараз `cli.py` у списку немає).
 8. **e2e:** другий сценарій у `tests/test_e2e_build.py` — скрипт `main.py` без пакета з однією маленькою залежністю з PyPI (наприклад `six`), який імпортує її й пише маркер.
 
 ## Сіми
@@ -37,11 +40,11 @@
 
 1. Експеримент з `-r pyproject.toml` (див. контекст); результат зафіксувати коментарем біля виклику в коді.
 2. `test_from_pyproject_requires_main_file_in_standalone_mode`, `test_from_pyproject_allows_missing_build_system_in_standalone_mode`, `test_from_pyproject_accepts_standalone_mode` (замість тесту на «not supported yet» із задачі 04).
-3. `test_standalone_build_copies_sources_without_blacklisted_files` (у джерелах є `__pycache__/x.pyc` і `.venv/` — у `app/` їх немає, а `main.py` є).
+3. `test_standalone_build_copies_sources_without_blacklisted_files` (у джерелах є `__pycache__/x.pyc`, `.venv/` і `tests/` — у `app/` їх немає, а `main.py` і `lib/native.dll` є).
 4. `test_standalone_build_installs_only_dependencies` (`subprocess.run` отримав `-r <pyproject>` і не отримав шлях проєкту як пакет).
 5. `test_standalone_build_skips_uv_when_no_dependencies`.
 6. `test_standalone_launcher_runs_main_file_as_script` (команда в `generate_exe` закінчується на `\app\main.py"`).
-7. `init`: `test_init_prefers_standalone_when_main_file_exists_without_dunder_main`.
+7. `init`: `test_init_prefers_standalone_when_main_file_exists_without_dunder_main`, `test_init_finds_cli_py_as_main_file`.
 8. e2e-тест; відновити `examples/SystemMonitor`, додати `[tool.pyretort]`, видалити `pyretort.toml`, зібрати, запустити.
 9. README: розділи Limitations і Configuration; CHANGELOG `[Unreleased]`.
 
