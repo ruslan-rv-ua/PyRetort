@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `pyretort check` accepted a `[project]` name or version that uv rejects,
+  such as `System Monitor` or `1.0 beta`, and `pyretort build` failed at the
+  uv step, after it had already removed the previous build. Both commands now
+  report such a name or version before the build starts.
+
 ## [0.2.0] - 2026-10-08
 
 ### Added

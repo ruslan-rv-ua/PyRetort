@@ -301,6 +301,14 @@ console window.
 - `Standalone mode (install_as_package = false) requires 'main_file' in [tool.pyretort]`
   → set `main_file` to the script the launcher should run, relative to
   `project_source_subdir`, for example `main_file = "main.py"`.
+- `Invalid name in [project]: '…'. …` → uv accepts only a name of ASCII
+  letters, digits, `-`, `_` and `.` that starts and ends with a letter or a
+  digit. PyRetort names the `.exe` and the folders after the name in
+  lowercase with hyphens anyway (`System Monitor` would give
+  `system-monitor.exe`), so the suggested name builds the same application.
+- `Invalid version in [project]: '…'. …` → uv accepts only a
+  [PEP 440](https://packaging.python.org/en/latest/specifications/version-specifiers/)
+  version, such as `1.0.0` or `1.0b1`.
 - `uv was not found in PATH. Install uv: https://docs.astral.sh/uv/getting-started/installation/`
   → install uv, then open a new terminal.
 - `Could not prepare the build directory …: [WinError 5] Access is denied: …`
