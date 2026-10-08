@@ -117,6 +117,8 @@ Use pytest for writing and running unit tests in this Python project. Ensure all
 
 Коли просять виконати задачу з `docs/tasks/` (наприклад «виконай задачу docs/tasks/03-...md»): спочатку прочитай [`docs/tasks/README.md`](docs/tasks/README.md) — там спільні правила, TDD-цикл, критерій завершення і таблиця статусів, — потім файл задачі. Працюй за кроками задачі зрізами «червоний → зелений», а наприкінці онови статус задачі в таблиці README тим самим комітом.
 
+**Журнал рішень** [`docs/decisions.md`](docs/decisions.md) пояснює, чому код і процес саме такі: чинні рішення виконаних задач із посиланнями на самі задачі в тегах релізів. Перш ніж змінити поведінку, описану там, прочитай запис і задачу за його посиланням.
+
 ## Project Management and Dependencies with uv
 
 Use `uv` for managing Python project dependencies and virtual environments.
