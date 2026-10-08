@@ -1493,3 +1493,41 @@ class TestBuildConfigFromPyprojectToml:
 
         assert config.project_name == "My_App.v2"
         assert config.dist_name == "my-app-v2-0.1.0-amd64"
+
+    @pytest.mark.parametrize(
+        ("version", "message"),
+        [
+            (
+                "1.0 beta",
+                "Invalid version in [project]: '1.0 beta'. "
+                "Use a PEP 440 version such as '1.0.0' or '1.0b1'.",
+            ),
+            (
+                "latest",
+                "Invalid version in [project]: 'latest'. "
+                "Use a PEP 440 version such as '1.0.0' or '1.0b1'.",
+            ),
+        ],
+        ids=["space", "no-digits"],
+    )
+    def test_from_pyproject_rejects_invalid_project_version(
+        self, tmp_path: Path, version: str, message: str
+    ) -> None:
+        """Test that a version uv rejects is reported with PEP 440 examples."""
+        pyproject_path = write_standalone_pyproject(tmp_path, version=version)
+
+        with pytest.raises(ValueError) as exc_info:
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+        assert str(exc_info.value) == message
+
+    def test_from_pyproject_keeps_project_version_as_written(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that a valid version is not normalized: dist_name is built from it."""
+        pyproject_path = write_standalone_pyproject(tmp_path, version="1.0-beta")
+
+        config = BuildConfig.from_pyproject_toml(pyproject_path)
+
+        assert config.project_version == "1.0-beta"
+        assert config.dist_name == "test-app-1.0-beta-amd64"

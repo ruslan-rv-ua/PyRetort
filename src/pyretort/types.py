@@ -96,6 +96,15 @@ def _check_project_name_and_version(project: dict[str, Any]) -> None:
             f"letter or digit{hint}."
         ) from None
 
+    version = project["version"]
+    try:
+        Version(version)
+    except InvalidVersion:
+        raise ValueError(
+            f"Invalid version in [project]: '{version}'. "
+            "Use a PEP 440 version such as '1.0.0' or '1.0b1'."
+        ) from None
+
 
 def _check_requires_python(requires_python: object, python_version: object) -> None:
     """Raise ValueError unless python_version satisfies [project].requires-python.
