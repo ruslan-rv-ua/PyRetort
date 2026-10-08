@@ -18,21 +18,6 @@ class PythonArchitecture(StrEnum):
     ARM64 = "arm64"
 
 
-class BuildBackend(StrEnum):
-    """All possible values for [build-system].build-backend in pyproject.toml"""
-
-    # setuptools
-    # TODO: implement setuptools support
-    # SETUPTOOLS = "setuptools.build_meta"
-
-    # hatchling
-    # tODO: implement hatchling support
-    HATCHLING = "hatchling.build"
-
-    # uv
-    UV = "uv_build"
-
-
 def derive_main_module(source_subdir: Path, project_name: str) -> str:
     """Return the module the launcher runs with ``python -m``.
 
@@ -94,8 +79,9 @@ class BuildConfig(BaseModel):
     # python architecture to use for the build
     python_architecture: PythonArchitecture
 
-    # build backend to use for building the project
-    build_backend: BuildBackend
+    # PEP 517 build backend declared in [build-system]; informational only,
+    # the build runs 'uv pip install', which handles any backend
+    build_backend: str
 
     # icon file path relative to project_dir (optional)
     icon_file_rel_path: Path | None = None
@@ -134,23 +120,6 @@ class BuildConfig(BaseModel):
             valid = [a.value for a in PythonArchitecture]
             raise ValueError(
                 f"Invalid python_architecture: '{v}'. Valid values: {', '.join(valid)}"
-            ) from None
-
-    @field_validator("build_backend", mode="before")
-    @classmethod
-    def validate_build_backend(cls, v: str) -> BuildBackend:
-        """Validate build_backend value."""
-        if v is None:
-            raise ValueError(
-                "build-backend is required in [build-system] section. "
-                f"Valid values: {', '.join(b.value for b in BuildBackend)}"
-            )
-        try:
-            return BuildBackend(v)
-        except ValueError:
-            valid = [b.value for b in BuildBackend]
-            raise ValueError(
-                f"Invalid build-backend: '{v}'. Valid values: {', '.join(valid)}"
             ) from None
 
     @field_validator("project_source_subdir_rel_path")
@@ -337,16 +306,13 @@ class BuildConfig(BaseModel):
             if not full_icon_path.is_file():
                 raise ValueError(f"Icon path is not a file: {full_icon_path}")
 
-        # Validate build backend
-        build_backend_str = build_system.get("build-backend")
-        try:
-            build_backend = BuildBackend(build_backend_str)
-        except ValueError as e:
-            valid = [b.value for b in BuildBackend]
+        # Validate build backend: any PEP 517 backend works with 'uv pip install',
+        # but an empty value would make uv fall back to legacy setuptools
+        build_backend = build_system.get("build-backend")
+        if not isinstance(build_backend, str) or not build_backend.strip():
             raise ValueError(
-                f"Invalid build-backend: '{build_backend_str}'. "
-                f"Valid values: {', '.join(valid)}"
-            ) from e
+                "'build-backend' in [build-system] must be a non-empty string"
+            )
 
         # Validate boolean fields
         install_as_package = tool_pyretort.get("install_as_package")

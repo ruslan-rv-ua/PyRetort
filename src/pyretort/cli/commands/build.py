@@ -5,7 +5,7 @@ from pathlib import Path
 
 import typer
 
-from pyretort.types import BuildBackend, BuildConfig
+from pyretort.types import BuildConfig
 
 
 def build_command(
@@ -34,13 +34,8 @@ def build_command(
         typer.echo(f"Invalid configuration: {e}", err=True)
         raise typer.Exit(1) from None
 
-    match config.build_backend:
-        case BuildBackend.UV:
-            from pyretort.builder.uv_builder import UVBuilder
+    # Imported here so that the CLI starts (and the platform check runs) before
+    # pywin32 is loaded, and so that tests can patch UVBuilder in its module.
+    from pyretort.builder.uv_builder import UVBuilder
 
-            builder = UVBuilder(config)
-        case other:
-            typer.echo(f"Unsupported build tool: {other}", err=True)
-            raise typer.Exit(1)
-
-    builder.build()
+    UVBuilder(config).build()

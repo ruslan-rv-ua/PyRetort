@@ -8,7 +8,7 @@ from typing import Any
 import pytest
 import tomli_w
 
-from pyretort.types import BuildBackend, BuildConfig, PythonArchitecture
+from pyretort.types import BuildConfig, PythonArchitecture
 
 
 @pytest.fixture
@@ -22,7 +22,7 @@ def sample_build_config() -> BuildConfig:
         project_source_subdir_rel_path=Path("src/test_project"),
         python_version="3.11.0",
         python_architecture=PythonArchitecture.AMD64,
-        build_backend=BuildBackend.UV,
+        build_backend="uv_build",
         create_dist_zip_file=False,
     )
 

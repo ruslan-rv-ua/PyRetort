@@ -69,8 +69,8 @@ class TestBuildCommand:
             mock_builder_instance.build.assert_called_once()
             assert result.exit_code == 0
 
-    def test_build_unsupported_backend(self, tmp_path: Path) -> None:
-        """Test build command with unsupported build backend."""
+    def test_build_with_hatchling_backend_uses_uv_builder(self, tmp_path: Path) -> None:
+        """Test that build accepts hatchling: uv pip install handles any backend."""
         pyproject = tmp_path / "pyproject.toml"
         data = {
             "project": {
@@ -97,10 +97,15 @@ class TestBuildCommand:
         (tmp_path / "src").mkdir()
         (tmp_path / "src" / "__main__.py").write_text("")
 
-        result = runner.invoke(app, ["build", "-p", str(pyproject)])
+        mock_builder_instance = MagicMock()
+        mock_builder_class = MagicMock(return_value=mock_builder_instance)
 
-        assert result.exit_code == 1
-        assert "unsupported" in result.output.lower()
+        with patch("pyretort.builder.uv_builder.UVBuilder", mock_builder_class):
+            result = runner.invoke(app, ["build", "-p", str(pyproject)])
+
+        assert result.exit_code == 0, result.output
+        mock_builder_class.assert_called_once()
+        mock_builder_instance.build.assert_called_once()
 
     def test_build_with_invalid_python_version(self, tmp_path: Path) -> None:
         """Test build command with Python version < 3.11."""
