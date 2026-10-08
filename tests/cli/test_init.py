@@ -15,6 +15,28 @@ from pyretort.cli import app
 runner = CliRunner()
 
 
+@pytest.fixture
+def my_app_pyproject(tmp_path: Path) -> Path:
+    """Write the pyproject.toml of my-app as 'uv init --no-package' creates it.
+
+    It has no [build-system] table. requires-python admits every Python that
+    PyRetort supports, because init writes the version of the Python that runs
+    the tests into python_version.
+    """
+    pyproject = tmp_path / "pyproject.toml"
+    data = {
+        "project": {
+            "name": "my-app",
+            "version": "0.1.0",
+            "readme": "README.md",
+            "requires-python": ">=3.11",
+            "dependencies": [],
+        },
+    }
+    pyproject.write_bytes(tomli_w.dumps(data).encode())
+    return pyproject
+
+
 class TestInitCommand:
     """Tests for the init command."""
 
@@ -125,7 +147,7 @@ class TestInitCommand:
     def test_init_leaves_main_file_commented_out_when_none_found(
         self, tmp_path: Path
     ) -> None:
-        """Test that without main.py, app.py or run.py init writes no main_file key."""
+        """Test that init writes no main_file key when it finds no main file."""
         pyproject = tmp_path / "pyproject.toml"
         data = {
             "project": {"name": "test-app", "version": "0.1.0"},
@@ -456,3 +478,118 @@ class TestInitCommandSourceDiscovery:
         main_file = updated_data["tool"]["pyretort"].get("main_file")
 
         assert main_file == "app.py"
+
+
+class TestInitCommandBuildMode:
+    """Tests for how init chooses between package mode and standalone mode."""
+
+    def test_init_prefers_standalone_for_scripts_in_project_root(
+        self, my_app_pyproject: Path
+    ) -> None:
+        """Test that main.py in the project root without a package gets standalone mode."""
+        (my_app_pyproject.parent / "main.py").write_text("print('hello')")
+
+        result = runner.invoke(app, ["init", "-p", str(my_app_pyproject)])
+
+        assert result.exit_code == 0, result.output
+        content = my_app_pyproject.read_text(encoding="utf-8")
+        pyretort_config = tomllib.loads(content)["tool"]["pyretort"]
+        assert pyretort_config["install_as_package"] is False
+        assert pyretort_config["main_file"] == "main.py"
+        assert pyretort_config["project_source_subdir"] == "."
+
+    def test_init_does_not_warn_about_dunder_main_in_standalone_mode(
+        self, my_app_pyproject: Path
+    ) -> None:
+        """Test that standalone mode reports the script instead of the missing __main__.py."""
+        (my_app_pyproject.parent / "main.py").write_text("print('hello')")
+
+        result = runner.invoke(app, ["init", "-p", str(my_app_pyproject)])
+
+        assert result.exit_code == 0, result.output
+        assert "warning" not in result.stdout
+        assert (
+            "Standalone mode: no package found, "
+            "the launcher will run main.py as a script"
+        ) in result.stdout
+
+    def test_init_keeps_package_mode_for_package_without_dunder_main(
+        self, my_app_pyproject: Path
+    ) -> None:
+        """Test that a package with main.py but without __main__.py stays a package.
+
+        Its main.py may import relatively, which fails when run as a script.
+        """
+        package_dir = my_app_pyproject.parent / "src" / "my_app"
+        package_dir.mkdir(parents=True)
+        (package_dir / "__init__.py").write_text("")
+        (package_dir / "main.py").write_text("from .database import connect")
+
+        result = runner.invoke(app, ["init", "-p", str(my_app_pyproject)])
+
+        assert result.exit_code == 0, result.output
+        content = my_app_pyproject.read_text(encoding="utf-8")
+        pyretort_config = tomllib.loads(content)["tool"]["pyretort"]
+        assert pyretort_config["install_as_package"] is True
+        expected_path = package_dir / "__main__.py"
+        assert (
+            f"warning: {expected_path} not found; "
+            "'pyretort build' will fail until it exists"
+        ) in result.stdout
+
+    def test_init_keeps_package_mode_for_single_module_in_root(
+        self, my_app_pyproject: Path
+    ) -> None:
+        """Test that my_app.py in the root keeps package mode: python -m my_app runs it."""
+        (my_app_pyproject.parent / "my_app.py").write_text("print('hello')")
+        (my_app_pyproject.parent / "main.py").write_text("print('hello')")
+
+        result = runner.invoke(app, ["init", "-p", str(my_app_pyproject)])
+
+        assert result.exit_code == 0, result.output
+        content = my_app_pyproject.read_text(encoding="utf-8")
+        pyretort_config = tomllib.loads(content)["tool"]["pyretort"]
+        assert pyretort_config["install_as_package"] is True
+
+    def test_init_finds_cli_py_as_main_file(self, my_app_pyproject: Path) -> None:
+        """Test that cli.py alone in the project root becomes the standalone script."""
+        (my_app_pyproject.parent / "cli.py").write_text("print('hello')")
+
+        result = runner.invoke(app, ["init", "-p", str(my_app_pyproject)])
+
+        assert result.exit_code == 0, result.output
+        content = my_app_pyproject.read_text(encoding="utf-8")
+        pyretort_config = tomllib.loads(content)["tool"]["pyretort"]
+        assert pyretort_config["main_file"] == "cli.py"
+        assert pyretort_config["install_as_package"] is False
+
+    def test_init_output_passes_check_for_uv_init_no_package_project(
+        self, my_app_pyproject: Path
+    ) -> None:
+        """Test that check accepts what init writes for a 'uv init --no-package' project."""
+        project_dir = my_app_pyproject.parent
+        (project_dir / "main.py").write_text("print('Hello from my-app!')")
+        (project_dir / "README.md").write_text("")
+        (project_dir / ".python-version").write_text("3.11\n")
+
+        init_result = runner.invoke(app, ["init", "-p", str(my_app_pyproject)])
+        check_result = runner.invoke(app, ["check", "-p", str(my_app_pyproject)])
+
+        assert init_result.exit_code == 0, init_result.output
+        assert check_result.exit_code == 0, check_result.output
+
+    def test_init_source_subdir_comment_matches_standalone_mode(
+        self, my_app_pyproject: Path
+    ) -> None:
+        """Test that a standalone section does not claim that the launcher runs python -m."""
+        (my_app_pyproject.parent / "main.py").write_text("print('hello')")
+
+        result = runner.invoke(app, ["init", "-p", str(my_app_pyproject)])
+
+        assert result.exit_code == 0, result.output
+        content = my_app_pyproject.read_text(encoding="utf-8")
+        assert (
+            "# In standalone mode its contents are copied into the application"
+            in content
+        )
+        assert "python -m <last path component>" not in content

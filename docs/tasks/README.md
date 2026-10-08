@@ -62,7 +62,7 @@ uv run mypy src launcher
 | 18 | [18-help-markup.md](18-help-markup.md) | `init --help`: назва секції `[tool.pyretort]` зникає з опису `--force` | — | DONE |
 | 19 | [19-unused-build-cache.md](19-unused-build-cache.md) | Прибрати мертвий код кешу збірки: `BuildConfig.build_hash` і `CacheManager` | — | DONE |
 | 20 | [20-trusted-publishing.md](20-trusted-publishing.md) | Публікація на PyPI з GitHub Actions без токенів (trusted publishing), репетиція на TestPyPI | 08, 09 | DONE |
-| 21 | [21-init-detects-standalone.md](21-init-detects-standalone.md) | `init` обирає standalone-режим для скриптів у корені проєкту | 12 | TODO |
+| 21 | [21-init-detects-standalone.md](21-init-detects-standalone.md) | `init` обирає standalone-режим для скриптів у корені проєкту | 12 | DONE |
 | 22 | [22-system-monitor-example.md](22-system-monitor-example.md) | Приклад SystemMonitor: GUI-застосунок у standalone-режимі | 12 | TODO |
 
 ## Ідеї після 0.1 без специфікації
@@ -76,3 +76,5 @@ uv run mypy src launcher
 - `cleanup --dry-run`: показати теки, які буде видалено, нічого не видаляючи.
 - Перевірка `[project].name` за PEP 508 у `check`. Ім'я з пробілом (`System Monitor`) зараз проходить `check`, а збірка падає вже на кроці uv (`Not a valid package or extra name`) — в обох режимах; див. задачу 12, факт 6.
 - Збірка за `uv.lock`, наприклад через `uv export`. Зараз обидва режими ставлять найновіші сумісні версії залежностей, а не ті, з якими застосунок перевіряли.
+- `init` для проєкту після простого `uv init`. З uv 0.12 це пакет `src/<slug>/` без `__main__.py`, з `main()` в `__init__.py` і `[project.scripts]` (`my-app = "my_app:main"`), тож `init` лише попереджає про `__main__.py`. Варіанти: підказати вміст `__main__.py` або запускати точку входу з `[project.scripts]`. Див. задачу 21, «Контекст».
+- `init` пише в `python_version` версію Python, на якому працює PyRetort, а `uv init` пише в `requires-python` нижню межу за версією свого Python. Коли вони розходяться (наприклад, PyRetort на 3.13, а `requires-python = ">=3.14"`), `check` у standalone-режимі падає одразу після `init`. Попереджати про це в `init` або брати версію, що задовольняє `requires-python`.

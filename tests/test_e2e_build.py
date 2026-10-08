@@ -65,7 +65,8 @@ from hello_app import main
 main()
 """
 
-# A script project as 'uv init' creates it: no package, no [build-system].
+# A script project as 'uv init --no-package' creates it: no package, no
+# [build-system].
 SCRIPT_PYPROJECT = f"""\
 [project]
 name = "hello-script"

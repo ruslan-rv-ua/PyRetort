@@ -1,10 +1,10 @@
 # hello-script
 
 A minimal console script packaged with PyRetort in standalone mode. The
-project has no package and no `[build-system]`, the layout `uv init` creates:
-`main.py` and `helper.py` in the project root. The script prints a greeting
-that it imports from `helper.py` and a table with the Python version, the path
-of the script and its command-line arguments.
+project has no package and no `[build-system]`, the layout
+`uv init --no-package` creates: `main.py` and `helper.py` in the project root.
+The script prints a greeting that it imports from `helper.py` and a table with
+the Python version, the path of the script and its command-line arguments.
 
 The example shows what a script project needs:
 

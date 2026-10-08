@@ -12,10 +12,7 @@ from tomlkit.items import Table
 
 from pyretort.cli._options import PyprojectOption, resolve_pyproject
 from pyretort.cli._output import echo
-from pyretort.constants import (
-    INSTALL_AS_PACKAGE_DEFAULT,
-    SHOW_CONSOLE_DEFAULT,
-)
+from pyretort.constants import SHOW_CONSOLE_DEFAULT
 from pyretort.types import PythonArchitecture, launcher_entry_point
 
 
@@ -47,8 +44,19 @@ def init_command(
 
     project_name = str(pyproject_data.get("project", {}).get("name", ""))
     source_subdir = _find_project_source_subdir(project_path, project_name)
+    entry_point = launcher_entry_point(project_path, source_subdir, project_name)
+    has_entry_point = entry_point.exists()
+    main_file = _find_main_file(project_path / source_subdir)
+    # Only scripts in the project root: the main file of a package without
+    # __main__.py may import relatively, which fails when run as a script
+    standalone = (
+        source_subdir == Path(".") and not has_entry_point and main_file is not None
+    )
     _set_pyretort_section(
-        pyproject_data, _build_pyretort_section(project_path, source_subdir)
+        pyproject_data,
+        _build_pyretort_section(
+            source_subdir, main_file, install_as_package=not standalone
+        ),
     )
     try:
         pyproject_toml.write_text(tomlkit.dumps(pyproject_data), encoding="utf-8")
@@ -64,8 +72,13 @@ def init_command(
     )
     echo(ctx, "  2. Run 'pyretort build' to create the distributable package.")
 
-    entry_point = launcher_entry_point(project_path, source_subdir, project_name)
-    if not entry_point.exists():
+    if standalone:
+        echo(
+            ctx,
+            "Standalone mode: no package found, "
+            f"the launcher will run {main_file} as a script",
+        )
+    elif not has_entry_point:
         echo(
             ctx,
             f"warning: {entry_point.dunder_main} not found; "
@@ -91,7 +104,9 @@ def _set_pyretort_section(
     tool_section["pyretort"] = pyretort_config
 
 
-def _build_pyretort_section(project_path: Path, source_subdir: Path) -> Table:
+def _build_pyretort_section(
+    source_subdir: Path, main_file: str | None, *, install_as_package: bool
+) -> Table:
     """Build the commented [tool.pyretort] section for the project."""
 
     pyretort_config: Table = tomlkit.table()
@@ -101,12 +116,19 @@ def _build_pyretort_section(project_path: Path, source_subdir: Path) -> Table:
             "Path to the project source directory relative to the project root"
         )
     )
-    pyretort_config.add(
-        tomlkit.comment(
-            "The launcher runs 'python -m <last path component>' "
-            '(the project name slug when ".")'
+    if install_as_package:
+        pyretort_config.add(
+            tomlkit.comment(
+                "The launcher runs 'python -m <last path component>' "
+                '(the project name slug when ".")'
+            )
         )
-    )
+    else:
+        pyretort_config.add(
+            tomlkit.comment(
+                "In standalone mode its contents are copied into the application"
+            )
+        )
     pyretort_config["project_source_subdir"] = source_subdir.as_posix()
 
     pyretort_config.add(
@@ -117,7 +139,6 @@ def _build_pyretort_section(project_path: Path, source_subdir: Path) -> Table:
     pyretort_config.add(
         tomlkit.comment("Used only when install_as_package = false; ignored otherwise")
     )
-    main_file = _find_main_file(project_path / source_subdir)
     if main_file is None:
         pyretort_config.add(tomlkit.comment('main_file = "main.py"'))
     else:
@@ -134,7 +155,7 @@ def _build_pyretort_section(project_path: Path, source_subdir: Path) -> Table:
             "false: copy sources and run main_file as a script"
         )
     )
-    pyretort_config["install_as_package"] = INSTALL_AS_PACKAGE_DEFAULT
+    pyretort_config["install_as_package"] = install_as_package
 
     pyretort_config.add(
         tomlkit.comment("Python version to use for the bundled distribution")
@@ -174,7 +195,7 @@ def _find_project_source_subdir(project_path: Path, project_name: str) -> Path:
 
 def _find_main_file(source_dir: Path) -> str | None:
     """Attempt to find the main Python file in the source directory."""
-    common_main_files = ["main.py", "app.py", "run.py"]
+    common_main_files = ["main.py", "app.py", "cli.py", "run.py"]
     for file_name in common_main_files:
         candidate = source_dir / file_name
         if candidate.is_file():
