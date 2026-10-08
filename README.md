@@ -256,7 +256,9 @@ example is such a project.
 1. **Embedded Python.** It downloads the Windows embeddable package
    `python-<version>-embed-<architecture>.zip` from python.org into
    `downloads/` and unpacks it into the `<name>` subfolder. Later builds reuse
-   the downloaded archive.
+   the downloaded archive. The standard library stays in `python<XY>.zip`, as
+   python.org ships it: uv copies that file into the environment in which it
+   builds the project and the dependencies that come without a wheel.
 2. **`._pth` file.** The embeddable Python takes its module search path from
    its `python<XY>._pth` file only. PyRetort rewrites that file so that
    `import site` runs and the packages in `Lib\site-packages` can be imported.

@@ -69,7 +69,7 @@ uv run mypy src launcher
 | 21 | [21-init-detects-standalone.md](21-init-detects-standalone.md) | `init` обирає standalone-режим для скриптів у корені проєкту | 12 | DONE |
 | 22 | [22-system-monitor-example.md](22-system-monitor-example.md) | Приклад SystemMonitor: GUI-застосунок у standalone-режимі | 12, 24 | TODO |
 | 23 | [23-prune-done-tasks.md](23-prune-done-tasks.md) | Після релізу 0.2.0: прибрати виконані задачі з беклогу, рішення з них — у `docs/decisions.md` | v0.2.0 | TODO |
-| 24 | [24-keep-stdlib-zip.md](24-keep-stdlib-zip.md) | `build`: стандартна бібліотека вбудованого Python лишається файлом `python3XX.zip`, щоб uv збирав sdist-залежності й проєкти з будь-яким бекендом | 12 | TODO |
+| 24 | [24-keep-stdlib-zip.md](24-keep-stdlib-zip.md) | `build`: стандартна бібліотека вбудованого Python лишається файлом `python3XX.zip`, щоб uv збирав sdist-залежності й проєкти з будь-яким бекендом | 12 | DONE |
 
 ## Ідеї після 0.1 без специфікації
 
