@@ -19,8 +19,8 @@
 When executing commands in the terminal:
 - Prefer PowerShell commands for modern Windows features
 - Use `cmd.exe` commands for maximum compatibility
-- Remember that the default shell is cmd.exe
-- Use `&&` for command chaining in cmd.exe, `;` in PowerShell
+- Remember that the default shell is PowerShell 7+
+- Use `&&` to chain commands that depend on each other (works in cmd.exe and PowerShell 7+); `;` in PowerShell runs the next command even if the previous one fails
 
 ## Conventional Commits
 
