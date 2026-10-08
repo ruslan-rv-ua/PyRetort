@@ -877,8 +877,40 @@ class TestBuildConfigFromPyprojectToml:
         with pytest.raises(ValueError, match="Source subdirectory must be relative"):
             BuildConfig.from_pyproject_toml(pyproject_path)
 
-    def test_main_file_does_not_exist(self, tmp_path: Path) -> None:
-        """Test that ValueError is raised when main file doesn't exist."""
+    def test_main_file_does_not_exist_in_standalone_mode(self, tmp_path: Path) -> None:
+        """Test that a missing main file is rejected when install_as_package is false."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dependencies": [],
+            },
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src",
+                    "main_file": "nonexistent.py",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": False,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        source_dir = tmp_path / "src"
+        source_dir.mkdir(parents=True, exist_ok=True)
+
+        with pytest.raises(ValueError, match="Main file does not exist"):
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_main_file_is_not_checked_in_package_mode(self, tmp_path: Path) -> None:
+        """Test that main_file may point nowhere when install_as_package is true."""
         import tomli_w
 
         data = {
@@ -905,9 +937,11 @@ class TestBuildConfigFromPyprojectToml:
 
         source_dir = tmp_path / "src"
         source_dir.mkdir(parents=True, exist_ok=True)
+        (source_dir / "__main__.py").write_text("")
 
-        with pytest.raises(ValueError, match="Main file does not exist"):
-            BuildConfig.from_pyproject_toml(pyproject_path)
+        config = BuildConfig.from_pyproject_toml(pyproject_path)
+
+        assert config.main_file_rel_path == Path("nonexistent.py")
 
     def test_main_file_is_absolute_path(self, tmp_path: Path) -> None:
         """Test that ValueError is raised when main file is absolute."""

@@ -302,17 +302,19 @@ class BuildConfig(BaseModel):
         if not full_source_path.is_dir():
             raise ValueError(f"Source path is not a directory: {full_source_path}")
 
-        # Validate main file exists if specified
+        # Validate main file if specified; only standalone mode runs it, so the
+        # file must exist only there, while package mode ignores it
         main_file_rel_path = None
         if "main_file" in tool_pyretort:
             main_file_rel_path = Path(tool_pyretort["main_file"])
             if main_file_rel_path.is_absolute():
                 raise ValueError(f"Main file must be relative: {main_file_rel_path}")
-            full_main_path = full_source_path / main_file_rel_path
-            if not full_main_path.exists():
-                raise ValueError(f"Main file does not exist: {full_main_path}")
-            if not full_main_path.is_file():
-                raise ValueError(f"Main path is not a file: {full_main_path}")
+            if tool_pyretort.get("install_as_package") is False:
+                full_main_path = full_source_path / main_file_rel_path
+                if not full_main_path.exists():
+                    raise ValueError(f"Main file does not exist: {full_main_path}")
+                if not full_main_path.is_file():
+                    raise ValueError(f"Main path is not a file: {full_main_path}")
 
         # Validate icon file exists if specified
         icon_file_rel_path = None
