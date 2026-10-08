@@ -36,6 +36,10 @@ def generate_exe(
             to the executable. Defaults to None.
         show_console (bool, optional): Whether to show the console window
             when the executable is run. Defaults to True.
+
+    Raises:
+        ValueError: If the command is longer than MAX_CMD_LENGTH characters;
+            the template has room for exactly that many.
     """
     target = target.absolute().resolve()
     if target == EXE_TEMPLATE_FILE:
@@ -43,13 +47,14 @@ def generate_exe(
             "Cannot overwrite the source EXE_TEMPLATE_FILE file! "
             "Pick a different target executable name."
         )
+    if len(command) > MAX_CMD_LENGTH:
+        raise ValueError(
+            f"Launcher command is {len(command)} characters long; "
+            f"the limit is {MAX_CMD_LENGTH}: {command}"
+        )
     with open(EXE_TEMPLATE_FILE, "rb") as f:
         data = f.read()
-    if len(command) > MAX_CMD_LENGTH:
-        command = command[:MAX_CMD_LENGTH]
-    else:
-        command = command + "\0" * (MAX_CMD_LENGTH - len(command))
-    assert len(command) == MAX_CMD_LENGTH
+    command = command + "\0" * (MAX_CMD_LENGTH - len(command))
     msg = command + ("1" if show_console else "0")
     byte_encoded_string = msg.encode("ascii")
     data = data.replace(REPLACE_SIGNATURE, byte_encoded_string)

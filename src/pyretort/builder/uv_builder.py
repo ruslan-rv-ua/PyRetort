@@ -57,9 +57,12 @@ class UVBuilder(BaseBuilder):
         main_module = self.config.main_module
         command_str = f'"{{EXE_DIR}}\\{python_exe_relative}" -m {main_module}'
         exe_file_name = f"{self.config.project_name_slug_dash}.exe"
-        generate_exe(
-            target=self.app_path / exe_file_name,
-            command=command_str,
-            icon_file=self.config.icon_file_abs_path,
-            show_console=self.config.show_console_window,
-        )
+        try:
+            generate_exe(
+                target=self.app_path / exe_file_name,
+                command=command_str,
+                icon_file=self.config.icon_file_abs_path,
+                show_console=self.config.show_console_window,
+            )
+        except ValueError as e:
+            raise BuildError(str(e)) from e

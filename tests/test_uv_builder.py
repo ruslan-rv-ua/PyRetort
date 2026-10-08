@@ -104,7 +104,7 @@ class TestUVBuilderLauncher:
         assert icon_file == project_dir / "assets" / "app.ico"
 
 
-@pytest.mark.usefixtures("generate_exe")
+@pytest.mark.usefixtures("externals")
 class TestUVBuilderFailures:
     """Tests for the build failures UVBuilder reports as BuildError."""
 
@@ -134,3 +134,10 @@ class TestUVBuilderFailures:
 
         assert "exit code 1" in str(exc_info.value)
         assert "No solution found" in str(exc_info.value)
+
+    def test_build_turns_long_command_into_build_error(self, tmp_path: Path) -> None:
+        """Test that a module name pushing the launcher command over the limit fails."""
+        config = make_config(tmp_path, "src/" + "m" * 250)
+
+        with pytest.raises(BuildError, match="the limit is 259"):
+            UVBuilder(config).build()
