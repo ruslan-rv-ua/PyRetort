@@ -18,7 +18,7 @@ build-backend = "uv_build"
 # The launcher runs 'python -m <last path component>' (the project name slug when ".")
 project_source_subdir = "src/hello_cli"
 # Whether to install the project as a Python package during build
-# Must be true: standalone mode (false) is not supported yet
+# true: install the project as a package and run python -m <module>; false: copy sources and run main_file as a script
 install_as_package = true
 # Python version to use for the bundled distribution
 python_version = "3.13.16"
