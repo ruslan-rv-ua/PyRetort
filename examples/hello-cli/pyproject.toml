@@ -1,38 +1,30 @@
 [project]
-name = "simple-rss"
+name = "hello-cli"
 version = "0.1.0"
-description = "Add your description here"
+description = "Minimal console application packaged with PyRetort"
 readme = "README.md"
 authors = [
     { name = "Ruslan Iskov", email = "ruslan.rv.ua+github@gmail.com" }
 ]
 requires-python = ">=3.13"
-dependencies = [
-    "wxPython>=4.2.0",
-    "httpx>=0.24.0",
-    "peewee>=3.16.0",
-    "fastfeedparser>=0.0.12",
-]
-
-[project.scripts]
-simple-rss = "simple_rss:main"
+dependencies = []
 
 [build-system]
-requires = ["uv_build>=0.9.4,<0.10.0"]
+requires = ["uv_build>=0.12.23,<0.13.0"]
 build-backend = "uv_build"
 
 [tool.pyretort]
 # Path to the project source directory relative to the project root
-project_source_subdir = "src/simple_rss"
-# Name of the main Python file to execute (e.g., main.py, app.py)
-main_file = "main.py"
+# The launcher runs 'python -m <last path component>' (the project name slug when ".")
+project_source_subdir = "src/hello_cli"
 # Whether to install the project as a Python package during build
+# Must be true: standalone mode (false) is not supported yet
 install_as_package = true
 # Python version to use for the bundled distribution
-python_version = "3.13.9"
-# Python architecture to use (AMD64, x86, ARM64)
+python_version = "3.13.16"
+# Python architecture to use (amd64, win32, arm64)
 python_architecture = "amd64"
 # Whether to show the console window when running the application
-show_console_window = false
+show_console_window = true
 # Whether to create a ZIP archive of the distribution
 create_dist_zip_file = true

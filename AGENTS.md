@@ -19,8 +19,8 @@
 When executing commands in the terminal:
 - Prefer PowerShell commands for modern Windows features
 - Use `cmd.exe` commands for maximum compatibility
-- Remember that the default shell is cmd.exe
-- Use `&&` for command chaining in cmd.exe, `;` in PowerShell
+- Remember that the default shell is PowerShell 7+
+- Use `&&` to chain commands that depend on each other (works in cmd.exe and PowerShell 7+); `;` in PowerShell runs the next command even if the previous one fails
 
 ## Conventional Commits
 
@@ -55,6 +55,25 @@ When making commits, follow the [Conventional Commits](https://www.conventionalc
 
 Always use lowercase for types and scopes. Keep descriptions concise but descriptive.
 
+## Гілки: git flow
+
+Гілки ведуться за git flow; інструмент — git-flow-next (`git flow version`).
+
+- `main` — лише випущені версії: у неї потрапляють тільки злиття релізів і хотфіксів з анотованим тегом `vX.Y.Z`. Напряму в `main` не комітити.
+- `develop` — інтеграційна гілка і гілка за замовчуванням на GitHub. CI запускається на push у `develop` і `main`.
+- Будь-яка зміна, навіть документація чи дрібний фікс, робиться у feature-гілці від `develop`: `git flow feature start <назва>`. Для задачі з `docs/tasks/` назва — ім'я файлу задачі без `.md`. Працювати в основному checkout, не у worktree.
+- Злиття: `git flow feature finish --no-ff --no-push <назва>`, потім `git push origin develop` — лише на прохання користувача.
+- Реліз: `git flow release start vX.Y.Z` → коміт `chore(release): vX.Y.Z` → `git flow release finish --no-ff --no-push -m "PyRetort X.Y.Z" vX.Y.Z`. Finish зливає реліз у `main`, ставить анотований тег із назви релізу і підтягує `main` у `develop`. Префікс `v` у назві релізу дає тег `vX.Y.Z`. Push (`git push origin main develop --follow-tags`) — лише з дозволу користувача.
+- Публікація на PyPI: push тегу `vX.Y.Z` запускає `.github/workflows/release.yml` — перевірки з `ci.yml`, збірка колеса й sdist зі smoke test на Windows, потім job `publish-pypi`. Він чекає, доки користувач підтвердить розгортання в GitHub (сторінка прогону → Review deployments → environment `pypi` → Approve and deploy), і публікує пакет через trusted publishing. Токенів PyPI проєкт не використовує: їх немає ні в репозиторії, ні в секретах GitHub, ні на машині розробника.
+- Репетиція на TestPyPI: `gh workflow run release.yml --ref develop -f version=X.Y.Z.devN` публікує dev-версію через environment `testpypi` без підтвердження. Файл із тією самою назвою індекс вдруге не приймає, тому кожна репетиція бере наступний `devN`.
+- Виправлення випущеної версії: `git flow hotfix start vX.Y.Z` від `main`, завершення так само, як у релізу.
+- Налаштування git flow живуть у `.git/config`, тож новий клон треба ініціалізувати саме в такому порядку:
+  ```
+  git branch main origin/main
+  git flow init --defaults
+  ```
+  Без першої команди `init` створить локальну `main` від `develop`.
+
 ## Pytest
 
 Use pytest for writing and running unit tests in this Python project. Ensure all new code includes appropriate tests and that existing tests pass before committing changes.
@@ -75,6 +94,16 @@ Use pytest for writing and running unit tests in this Python project. Ensure all
   ```
   Запускаються лише тести з маркером `slow`.
 
+- **Наскрізні тести (справжня збірка і запуск exe):**
+  ```
+  uv run pytest -m e2e
+  ```
+  `tests/test_e2e_build.py` збирає крихітний проєкт справжнім `pyretort build` і запускає згенерований exe. Потрібні `uv` у PATH та інтернет: збірка завантажує embedded Python з python.org, а uv — бекенд `uv_build`. Щоб не завантажувати архів Python щоразу, вкажи у `PYRETORT_E2E_DOWNLOAD_DIR` теку, де вже лежить архів тієї версії, яку очікує тест (`EMBEDDED_PYTHON_ZIP` у `tests/test_e2e_build.py`), наприклад `downloads/` проєкту, зібраного з такою ж `python_version`:
+  ```
+  $env:PYRETORT_E2E_DOWNLOAD_DIR = "examples\Simple RSS\downloads"
+  uv run pytest -m e2e
+  ```
+
 - **Всі тести (швидкі та повільні):**
   ```
   uv run pytest -m "slow or not slow"
@@ -83,6 +112,10 @@ Use pytest for writing and running unit tests in this Python project. Ensure all
 > **Примітка:** Тести з маркером `slow` автоматично виключаються за замовчуванням завдяки налаштуванню
 > `addopts = "-m 'not slow'"`
 > у файлі [`pyproject.toml`](pyproject.toml).
+
+## Беклог задач у `docs/tasks/`
+
+Коли просять виконати задачу з `docs/tasks/` (наприклад «виконай задачу docs/tasks/03-...md»): спочатку прочитай [`docs/tasks/README.md`](docs/tasks/README.md) — там спільні правила, TDD-цикл, критерій завершення і таблиця статусів, — потім файл задачі. Працюй за кроками задачі зрізами «червоний → зелений», а наприкінці онови статус задачі в таблиці README тим самим комітом.
 
 ## Project Management and Dependencies with uv
 
