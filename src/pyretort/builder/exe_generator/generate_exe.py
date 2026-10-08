@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """This module provides functions for generating executable files on Windows.
 
 Functions:
@@ -7,9 +5,11 @@ Functions:
 - add_icon_to_exe: Adds an icon file to an existing executable file.
 """
 
+from __future__ import annotations
+
 import struct
 from pathlib import Path
-from typing import Any, BinaryIO, List, Optional, Tuple
+from typing import Any, BinaryIO
 
 import win32api
 
@@ -26,7 +26,7 @@ def generate_exe(
     command: str,
     icon_file: Path | None = None,
     show_console: bool = True,
-):
+) -> None:
     """Generate an executable file from a command string and an optional icon file.
 
     Args:
@@ -97,14 +97,14 @@ RT_ICON = 3
 RT_GROUP_ICON = 14
 
 
-class DataStruct(object):
+class DataStruct:
     """General class for handling data structures within a file."""
 
     def __init__(
         self,
-        dtype: Tuple[Tuple[str, ...], str],
-        input_stream: Optional[BinaryIO] = None,
-    ):
+        dtype: tuple[tuple[str, ...], str],
+        input_stream: BinaryIO | None = None,
+    ) -> None:
         """Initialize a new instance of the DataStruct class.
 
         Args:
@@ -151,7 +151,7 @@ class DataStruct(object):
             return self._data[self._indices[name]]
         return self.__dict__[name]
 
-    def __setattr__(self, name: str, value: Any):
+    def __setattr__(self, name: str, value: Any) -> None:
         """Set the value of the specified attribute.
 
         Args:
@@ -172,16 +172,16 @@ class DataStruct(object):
     def _get_data(self) -> bytes:
         return struct.pack(self._data_types, *self._data)
 
-    def _copy(self, data_struct: "DataStruct"):
+    def _copy(self, data_struct: DataStruct) -> None:
         for field_name in data_struct._field_names:
             if field_name in self._field_names:
                 setattr(self, field_name, getattr(data_struct, field_name))
 
 
-class Icon(object):
+class Icon:
     """Class to extract the relevant data from a .ico file."""
 
-    def __init__(self, file_name: Path):
+    def __init__(self, file_name: Path) -> None:
         """Initialize an Icon object by reading the specified icon file.
 
         Args:
@@ -196,7 +196,7 @@ class Icon(object):
                 DataStruct(dtype=ICONDIRENTRY, input_stream=f)
                 for _ in range(self._header.idCount)
             ]
-            self._icon_data: List[bytes] = []
+            self._icon_data: list[bytes] = []
             for entry in self._dir_entries:
                 f.seek(entry.dwImageOffset, 0)
                 self._icon_data.append(f.read(entry.dwBytesInRes))
@@ -210,11 +210,11 @@ class Icon(object):
             data += icon_dir_entry._get_data()
         return data
 
-    def _get_icon_data(self) -> List[bytes]:
+    def _get_icon_data(self) -> list[bytes]:
         return self._icon_data
 
 
-def add_icon_to_exe(source_icon_file: Path, target_exe_file: Path):
+def add_icon_to_exe(source_icon_file: Path, target_exe_file: Path) -> None:
     """Add an icon to a Windows executable file.
 
     Args:

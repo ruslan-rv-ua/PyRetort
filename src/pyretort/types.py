@@ -102,7 +102,7 @@ class BuildConfig(BaseModel):
             valid = [a.value for a in PythonArchitecture]
             raise ValueError(
                 f"Invalid python_architecture: '{v}'. Valid values: {', '.join(valid)}"
-            )
+            ) from None
 
     @field_validator("build_backend", mode="before")
     @classmethod
@@ -119,7 +119,7 @@ class BuildConfig(BaseModel):
             valid = [b.value for b in BuildBackend]
             raise ValueError(
                 f"Invalid build-backend: '{v}'. Valid values: {', '.join(valid)}"
-            )
+            ) from None
 
     @field_validator("project_source_subdir_rel_path")
     @classmethod
@@ -153,7 +153,7 @@ class BuildConfig(BaseModel):
 
         return v
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]  # mypy: unsupported on @property
     @property
     def python_version_short(self) -> str:
         """Convert version '3.11.9' -> '311', '3.0.1' -> '30'."""
@@ -163,26 +163,26 @@ class BuildConfig(BaseModel):
         major, minor = parts[0], parts[1]
         return f"{major}{minor}"
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]  # mypy: unsupported on @property
     @property
     def project_name_slug_underscore(self) -> str:
         """Slugify project name with underscores (lowercase)."""
         return slugify(self.project_name, separator="_")
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]  # mypy: unsupported on @property
     @property
     def project_name_slug_dash(self) -> str:
         """Slugify project name with hyphens (lowercase)."""
         return slugify(self.project_name, separator="-")
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]  # mypy: unsupported on @property
     @property
     def dist_name(self) -> str:
         """Distribution name: 'my-app-0.1.0-amd64'."""
         return f"{self.project_name_slug_dash}-{self.project_version}-{self.python_architecture}"
 
     @classmethod
-    def from_pyproject_toml(cls, pyproject_path: Path | str) -> "BuildConfig":
+    def from_pyproject_toml(cls, pyproject_path: Path | str) -> BuildConfig:
         """
         Create BuildConfig from pyproject.toml file.
 

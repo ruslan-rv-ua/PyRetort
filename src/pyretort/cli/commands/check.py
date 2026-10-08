@@ -11,7 +11,7 @@ from pyretort.types import BuildConfig
 def check_command(
     ctx: typer.Context,
     pyproject_toml: Path = typer.Option(
-        Path.cwd() / "pyproject.toml",
+        Path.cwd() / "pyproject.toml",  # noqa: B008  # import-time cwd, task 05
         "--pyproject-toml",
         "-p",
         exists=True,
@@ -29,6 +29,6 @@ def check_command(
         BuildConfig.from_pyproject_toml(pyproject_toml)
     except (FileNotFoundError, ValueError) as exc:
         echo(ctx, f"Configuration validation failed: {exc}", err=True)
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     echo(ctx, f"Configuration at {pyproject_toml} is valid.")

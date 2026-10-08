@@ -152,7 +152,7 @@ class TestInitCommand:
         assert "httpx>=0.27.0" in updated_data["project"]["dependencies"]
 
     def test_init_quiet_mode(self, tmp_path: Path) -> None:
-        """Test init command in quiet mode - only print statements should show."""
+        """Test init command in quiet mode prints nothing."""
         pyproject = tmp_path / "pyproject.toml"
         data = {
             "project": {"name": "test-app", "version": "0.1.0"},
@@ -166,9 +166,24 @@ class TestInitCommand:
         result = runner.invoke(app, ["--quiet", "init", "-p", str(pyproject)])
 
         assert result.exit_code == 0
-        # Note: init command has print() statements that aren't affected by quiet mode
-        # The echo() calls are suppressed, but print() is not
-        assert "updated successfully" not in result.output.lower()
+        assert result.output == ""
+
+    def test_init_architecture_comment_lists_valid_values(self, tmp_path: Path) -> None:
+        """Test that the architecture comment lists the accepted values."""
+        pyproject = tmp_path / "pyproject.toml"
+        data = {
+            "project": {"name": "test-app", "version": "0.1.0"},
+            "build-system": {
+                "requires": ["hatchling"],
+                "build-backend": "hatchling.build",
+            },
+        }
+        pyproject.write_bytes(tomli_w.dumps(data).encode())
+
+        result = runner.invoke(app, ["init", "-p", str(pyproject)])
+
+        assert result.exit_code == 0
+        assert "amd64, win32, arm64" in pyproject.read_text(encoding="utf-8")
 
 
 class TestInitCommandSourceDiscovery:
