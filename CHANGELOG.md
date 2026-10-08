@@ -22,6 +22,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `run.py` found there. Packages keep package mode.
 - hello-script, an example of a console script built in standalone mode.
 
+### Fixed
+
+- Building a project with a build backend other than `uv_build`, and
+  installing a dependency that PyPI offers only as an sdist, failed with
+  `Failed to create temporary virtualenv`. The build unpacked the standard
+  library of the embedded Python into a directory named `python3XX.zip`, and
+  uv copies that entry as a file into the environment in which it builds.
+  The library now stays in the zip file, as python.org ships it.
+
 ## [0.1.0] - 2026-10-08
 
 First public release.

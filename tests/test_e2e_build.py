@@ -1,11 +1,12 @@
-"""End-to-end tests: build two tiny projects for real and run the generated exe.
+"""End-to-end tests: build tiny projects for real and run the generated exe.
 
 Unlike the mocked build tests these download the embedded Python, let uv
 install into it and run the launcher, so they catch what the mocks cannot
 see: the ._pth format, uv against an embedded Python and the launcher
-template. hello-app is built in package mode, hello-script in standalone
-mode. They are slow and need the network, so they run only with
-``uv run pytest -m e2e``; AGENTS.md describes the download cache.
+template. hello-app is built in package mode, once with uv_build and once
+with setuptools, hello-script in standalone mode. They are slow and need the
+network, so they run only with ``uv run pytest -m e2e``; AGENTS.md describes
+the download cache.
 """
 
 from __future__ import annotations
@@ -37,6 +38,30 @@ dependencies = []
 [build-system]
 requires = ["uv_build>=0.9.4,<0.10.0"]
 build-backend = "uv_build"
+
+[tool.pyretort]
+project_source_subdir = "src/hello_app"
+install_as_package = true
+python_version = "{PYTHON_VERSION}"
+python_architecture = "amd64"
+show_console_window = false
+create_dist_zip_file = true
+"""
+
+# The same project with a backend uv does not run itself: uv builds the wheels
+# of uv_build without Python, but runs setuptools, like any other PEP 517
+# backend, in a temporary venv of the embedded Python. setuptools finds the
+# package in src/ on its own.
+SETUPTOOLS_PYPROJECT = f"""\
+[project]
+name = "hello-app"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = []
+
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"
 
 [tool.pyretort]
 project_source_subdir = "src/hello_app"
@@ -117,17 +142,31 @@ def copy_cached_python(project: Path) -> None:
         shutil.copyfile(cached_archive, downloads / EMBEDDED_PYTHON_ZIP)
 
 
-@pytest.fixture
-def hello_project(tmp_path: Path) -> Path:
-    """Create the hello-app project in tmp_path and return its pyproject.toml."""
-    pyproject = tmp_path / "pyproject.toml"
-    pyproject.write_text(PYPROJECT, encoding="utf-8")
-    package = tmp_path / "src" / "hello_app"
+def write_hello_app(project: Path, pyproject_text: str) -> Path:
+    """Create the hello-app package in project with the given pyproject.toml.
+
+    Return the path of the pyproject.toml.
+    """
+    pyproject = project / "pyproject.toml"
+    pyproject.write_text(pyproject_text, encoding="utf-8")
+    package = project / "src" / "hello_app"
     package.mkdir(parents=True)
     (package / "__init__.py").write_text(HELLO_APP_INIT, encoding="utf-8")
     (package / "__main__.py").write_text(HELLO_APP_MAIN, encoding="utf-8")
-    copy_cached_python(tmp_path)
+    copy_cached_python(project)
     return pyproject
+
+
+@pytest.fixture
+def hello_project(tmp_path: Path) -> Path:
+    """Create the hello-app project in tmp_path and return its pyproject.toml."""
+    return write_hello_app(tmp_path, PYPROJECT)
+
+
+@pytest.fixture
+def setuptools_project(tmp_path: Path) -> Path:
+    """Create hello-app with the setuptools backend; return its pyproject.toml."""
+    return write_hello_app(tmp_path, SETUPTOOLS_PYPROJECT)
 
 
 @pytest.fixture
@@ -191,6 +230,31 @@ class TestEndToEndBuild:
         assert "Build complete" in second.output
         assert not marker.exists()
         assert (app_dir / "hello-app.exe").is_file()
+
+    def test_build_with_setuptools_backend_produces_runnable_launcher(
+        self, setuptools_project: Path
+    ) -> None:
+        """Test that uv builds the project with setuptools in a venv of the embedded Python.
+
+        That venv needs python3XX.zip, the standard library, as a file.
+        """
+        project = setuptools_project.parent
+
+        result = runner.invoke(app, ["build", "-p", str(setuptools_project)])
+
+        assert result.exit_code == 0, result.output
+        assert "Build complete" in result.output
+        app_dir = project / "build" / "hello-app-0.1.0-amd64"
+        exe = app_dir / "hello-app.exe"
+        assert exe.is_file()
+        assert (app_dir / "hello-app" / "python313.zip").is_file()
+
+        completed = run_launcher(exe, project / "elsewhere")
+
+        assert completed.returncode == 0, completed.stderr.decode("utf-8", "replace")
+        marker = app_dir / "e2e_marker.txt"
+        assert marker.is_file()
+        assert "3.13.9" in marker.read_text(encoding="utf-8")
 
     def test_standalone_build_produces_runnable_launcher(
         self, script_project: Path
