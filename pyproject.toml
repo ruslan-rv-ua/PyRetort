@@ -27,11 +27,11 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
-    "pytest>=8.4.2",
-    "pytest-cov>=6.0.0",
-    "mypy>=1.14.0",
-    "ruff>=0.8.0",
-    "types-pywin32>=308.0.0",
+    "pytest>=9",
+    "pytest-cov>=7.1",
+    "mypy>=2",
+    "ruff>=0.16",
+    "types-pywin32>=312",
     "tomli-w>=1.2.0",
 ]
 
