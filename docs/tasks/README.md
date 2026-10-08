@@ -50,7 +50,7 @@ uv run mypy src launcher
 | 06 | [06-dist-zip.md](06-dist-zip.md) | ZIP-архів у `dist/` | 05 | DONE |
 | 07 | [07-e2e-build-test.md](07-e2e-build-test.md) | Наскрізний тест: реальна збірка і запуск exe | 06 | DONE |
 | 08 | [08-ci.md](08-ci.md) | GitHub Actions на windows-latest | 03 | DONE |
-| 09 | [09-readme-and-metadata.md](09-readme-and-metadata.md) | README, CHANGELOG, метадані пакета, подяка gen-exe | 06, 14, 15 | TODO |
+| 09 | [09-readme-and-metadata.md](09-readme-and-metadata.md) | README, CHANGELOG, метадані пакета, подяка gen-exe | 06, 14, 15 | DONE |
 | 10 | [10-examples.md](10-examples.md) | Приклади: прибрати застарілі, додати hello-cli | 04 | DONE |
 | 11 | [11-release-0.1.0.md](11-release-0.1.0.md) | Реліз 0.1.0: тег, колесо, перевірка встановлення | 07, 08, 09, 10, 13, 14, 15, 16, 17, 18 | TODO |
 | 12 | [12-standalone-mode.md](12-standalone-mode.md) | Після 0.1: режим без встановлення пакета | 11 | TODO |

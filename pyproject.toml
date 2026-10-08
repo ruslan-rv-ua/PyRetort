@@ -1,11 +1,25 @@
 [project]
 name = "pyretort"
 version = "0.1.0"
-description = "Add your description here"
+description = "Package Python projects into standalone Windows applications with an embedded Python"
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
+license-files = ["LICENSE", "THIRD_PARTY_LICENSES.md"]
 authors = [
     { name = "Ruslan Iskov", email = "ruslan.rv.ua+github@gmail.com" }
+]
+keywords = ["windows", "packaging", "embedded-python", "exe", "launcher"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Build Tools",
 ]
 requires-python = ">=3.11"
 dependencies = [
@@ -17,6 +31,12 @@ dependencies = [
     "packaging>=21.0",
     "tomlkit>=0.13.3",
 ]
+
+[project.urls]
+Homepage = "https://github.com/ruslan-rv-ua/PyRetort"
+Repository = "https://github.com/ruslan-rv-ua/PyRetort"
+Issues = "https://github.com/ruslan-rv-ua/PyRetort/issues"
+Changelog = "https://github.com/ruslan-rv-ua/PyRetort/blob/develop/CHANGELOG.md"
 
 [project.scripts]
 pyretort = "pyretort:main"
