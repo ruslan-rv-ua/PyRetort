@@ -60,7 +60,7 @@
 
 ## Поза межами
 
-- Перевірка імені проєкту за PEP 508 у `check` (розділ «Ідеї після 0.1» в [README.md](README.md)).
+- Перевірка імені проєкту за PEP 508 у `check`: ідея [check-project-name](ideas.md#check-project-name).
 - Локальна копія бандла datastar і Bootstrap замість CDN.
 
 ## Коміти
