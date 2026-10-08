@@ -6,6 +6,7 @@ from typing import Annotated
 
 import typer
 
+from pyretort.cli._options import PyprojectOption, resolve_pyproject
 from pyretort.cli._output import echo
 from pyretort.constants import (
     BUILD_DIR_DEFAULT,
@@ -27,26 +28,14 @@ def cleanup_command(
             ),
         ),
     ] = None,
-    pyproject_toml: Annotated[
-        Path | None,
-        typer.Option(
-            "--pyproject-toml",
-            "-p",
-            help=(
-                "Path to the pyproject.toml of the project to clean. "
-                "Defaults to pyproject.toml in the current directory."
-            ),
-        ),
-    ] = None,
+    pyproject_toml: PyprojectOption = None,
 ) -> None:
     """Remove build artifacts that PyRetort produced.
 
     Artifact directories are looked up next to pyproject.toml, not in the
     current directory.
     """
-    if pyproject_toml is None:
-        pyproject_toml = Path.cwd() / "pyproject.toml"
-    pyproject_toml = pyproject_toml.resolve()
+    pyproject_toml = resolve_pyproject(pyproject_toml)
     if not pyproject_toml.is_file():
         echo(ctx, f"Configuration file not found: {pyproject_toml}", err=True)
         raise typer.Exit(1)

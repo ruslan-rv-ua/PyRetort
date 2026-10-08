@@ -3,6 +3,7 @@
 import tomllib
 from pathlib import Path
 
+import pytest
 import tomli_w
 from typer.testing import CliRunner
 
@@ -124,7 +125,29 @@ class TestInitCommand:
 
         result = runner.invoke(app, ["init", "-p", str(nonexistent)])
 
-        assert result.exit_code != 0
+        assert result.exit_code == 1
+        assert f"Configuration file not found: {nonexistent}" in result.stderr
+
+    def test_init_defaults_to_pyproject_in_current_directory(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test that without -p the pyproject.toml in the current directory is used."""
+        pyproject = tmp_path / "pyproject.toml"
+        data = {
+            "project": {"name": "test-app", "version": "0.1.0"},
+            "build-system": {
+                "requires": ["hatchling"],
+                "build-backend": "hatchling.build",
+            },
+        }
+        pyproject.write_bytes(tomli_w.dumps(data).encode())
+        monkeypatch.chdir(tmp_path)
+
+        result = runner.invoke(app, ["init"])
+
+        assert result.exit_code == 0, result.output
+        updated_data = tomllib.loads(pyproject.read_text(encoding="utf-8"))
+        assert "pyretort" in updated_data["tool"]
 
     def test_init_preserves_existing_config(self, tmp_path: Path) -> None:
         """Test that init preserves existing project configuration."""

@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import pytest
 import tomli_w
 from typer.testing import CliRunner
 
@@ -127,11 +128,27 @@ class TestCheckCommand:
         assert result.exit_code == 0
         assert result.output == ""
 
-    def test_check_default_path_when_no_file(self) -> None:
-        """Test check command uses default path (cwd/pyproject.toml)."""
+    def test_check_default_path_when_no_file(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test that without -p and without a pyproject.toml in cwd check fails."""
+        monkeypatch.chdir(tmp_path)
+
         result = runner.invoke(app, ["check"])
 
-        assert result.exit_code != 0
+        assert result.exit_code == 1
+        assert "Configuration file not found" in result.stderr
+
+    def test_check_defaults_to_pyproject_in_current_directory(
+        self, valid_pyproject_toml: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test that without -p the pyproject.toml in the current directory is used."""
+        monkeypatch.chdir(valid_pyproject_toml.parent)
+
+        result = runner.invoke(app, ["check"])
+
+        assert result.exit_code == 0, result.output
+        assert f"Configuration at {valid_pyproject_toml} is valid." in result.output
 
     def test_check_rejects_standalone_mode(self, tmp_path: Path) -> None:
         """Test that install_as_package = false fails with a clear message."""

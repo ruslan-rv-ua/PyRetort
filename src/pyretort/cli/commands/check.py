@@ -1,33 +1,23 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 import typer
 
+from pyretort.cli._options import PyprojectOption, resolve_pyproject
 from pyretort.cli._output import echo
 from pyretort.types import BuildConfig
 
 
-def check_command(
-    ctx: typer.Context,
-    pyproject_toml: Path = typer.Option(
-        Path.cwd() / "pyproject.toml",  # noqa: B008  # import-time cwd, task 05
-        "--pyproject-toml",
-        "-p",
-        exists=True,
-        file_okay=True,
-        dir_okay=False,
-        readable=True,
-        help="Path to a pyproject.toml file to validate.",
-    ),
-) -> None:
+def check_command(ctx: typer.Context, pyproject_toml: PyprojectOption = None) -> None:
     """Validate configuration file structure and referenced paths."""
 
-    pyproject_toml = pyproject_toml.resolve()
+    pyproject_toml = resolve_pyproject(pyproject_toml)
+    if not pyproject_toml.is_file():
+        echo(ctx, f"Configuration file not found: {pyproject_toml}", err=True)
+        raise typer.Exit(1)
 
     try:
         BuildConfig.from_pyproject_toml(pyproject_toml)
-    except (FileNotFoundError, ValueError) as exc:
+    except ValueError as exc:
         echo(ctx, f"Configuration validation failed: {exc}", err=True)
         raise typer.Exit(1) from None
 

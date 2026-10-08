@@ -10,6 +10,7 @@ import typer
 from slugify import slugify
 from tomlkit.items import Table
 
+from pyretort.cli._options import PyprojectOption, resolve_pyproject
 from pyretort.cli._output import echo
 from pyretort.constants import (
     INSTALL_AS_PACKAGE_DEFAULT,
@@ -20,16 +21,7 @@ from pyretort.types import PythonArchitecture, launcher_entry_point
 
 def init_command(
     ctx: typer.Context,
-    pyproject_toml_path: Path = typer.Option(
-        Path.cwd() / "pyproject.toml",  # noqa: B008  # import-time cwd, task 05
-        "--pyproject-toml",
-        "-p",
-        exists=True,
-        file_okay=True,
-        dir_okay=False,
-        writable=True,
-        help="Path to the pyproject.toml file of the target project.",
-    ),
+    pyproject_toml: PyprojectOption = None,
     force: bool = typer.Option(
         False,
         "--force",
@@ -38,7 +30,10 @@ def init_command(
 ) -> None:
     """Initialize a PyRetort configuration file for a Python project."""
 
-    pyproject_toml_path = pyproject_toml_path.resolve()
+    pyproject_toml_path = resolve_pyproject(pyproject_toml)
+    if not pyproject_toml_path.is_file():
+        echo(ctx, f"Configuration file not found: {pyproject_toml_path}", err=True)
+        raise typer.Exit(1)
     project_path = pyproject_toml_path.parent
 
     pyproject_data = tomlkit.parse(pyproject_toml_path.read_text(encoding="utf-8"))
