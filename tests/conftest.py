@@ -194,12 +194,6 @@ def download_dir(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
-def cache_dir(tmp_path: Path) -> Path:
-    """Create a temporary cache directory path (not created yet)."""
-    return tmp_path / "cache"
-
-
-@pytest.fixture
 def pydist_dir(tmp_path: Path) -> Path:
     """Create a temporary pydist directory."""
     pd_dir = tmp_path / "pydist"
