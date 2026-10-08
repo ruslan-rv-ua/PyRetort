@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
+from packaging.utils import InvalidName, canonicalize_name
 from packaging.version import InvalidVersion, Version
 from pydantic import BaseModel, computed_field, field_validator, model_validator
 from slugify import slugify
@@ -80,6 +81,20 @@ def _check_project_name_and_version(project: dict[str, Any]) -> None:
             raise ValueError(
                 f"'{field}' in [project] must be a string, got {type(value).__name__}"
             )
+
+    name = project["name"]
+    try:
+        canonicalize_name(name, validate=True)
+    except InvalidName:
+        # PyRetort names the exe and the folders after this slug, so the
+        # suggested name builds the same files
+        slug = slugify(name, separator="-")
+        hint = f"; try '{slug}'" if slug else ""
+        raise ValueError(
+            f"Invalid name in [project]: '{name}'. A name may contain only ASCII "
+            "letters, digits, '-', '_' and '.' and must start and end with a "
+            f"letter or digit{hint}."
+        ) from None
 
 
 def _check_requires_python(requires_python: object, python_version: object) -> None:
