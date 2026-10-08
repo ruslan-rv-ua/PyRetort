@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   application folder, installs `[project].dependencies` with
   `uv pip install -r pyproject.toml` and makes the launcher run `main_file`
   as a script, with the script's folder on the module search path.
+- `pyretort init` picks standalone mode for a script in the project root, as
+  `uv init --no-package` creates it: it writes `install_as_package = false`
+  and, as `main_file`, the first of `main.py`, `app.py`, `cli.py` and
+  `run.py` found there. Packages keep package mode.
 - hello-script, an example of a console script built in standalone mode.
 
 ## [0.1.0] - 2026-10-08

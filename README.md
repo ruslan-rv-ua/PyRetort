@@ -150,7 +150,7 @@ dependencies. See the
 
 | Command | What it does |
 |---|---|
-| `pyretort init` | Adds a `[tool.pyretort]` section with values detected from the project; `--force` replaces an existing one. |
+| `pyretort init` | Adds a `[tool.pyretort]` section with values detected from the project and picks [standalone mode](#standalone-mode) for scripts in the project root; `--force` replaces an existing one. |
 | `pyretort check` | Validates the configuration and the files and folders it names. |
 | `pyretort build` | Builds `build/<name>-<version>-<architecture>/` and, with `create_dist_zip_file = true`, the archive in `dist/`. |
 | `pyretort cleanup [targets]` | Removes `downloads/` (target `cache`), `build/` and `dist/` (target `build`), or all three (`all`, the default). |
@@ -208,6 +208,22 @@ python_architecture = "amd64"
 show_console_window = true
 create_dist_zip_file = true
 ```
+
+`pyretort init` picks standalone mode by itself for scripts in the project
+root. It writes `install_as_package = false` and `main_file` when all of these
+hold, where `<module>` is the project name in lowercase with underscores:
+
+- there is no `<module>` folder in the project root or in `src`, `source`,
+  `app` or `lib`, so `project_source_subdir` is `"."`;
+- there is no `<module>.py` in the project root, which `python -m <module>`
+  would run;
+- the project root holds `main.py`, `app.py`, `cli.py` or `run.py`; the first
+  of them in this order becomes `main_file`.
+
+Otherwise `init` writes `install_as_package = true`. This includes a package
+that has a `main.py` but no `__main__.py`: such a file often imports its
+neighbours relatively, as in `from .database import …`, which fails when it
+runs as a script. `init` then warns about the missing `__main__.py`.
 
 The build copies `project_source_subdir` into `<name>\app` inside the
 application folder and installs `[project].dependencies` into the embedded
