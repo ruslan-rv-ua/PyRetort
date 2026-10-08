@@ -105,8 +105,8 @@ def _build_pyretort_section(project_path: Path, source_subdir: str) -> Table:
     )
     pyretort_config.add(
         tomlkit.comment(
-            "The launcher runs 'python -m <last path component>', "
-            "so point it at the package directory"
+            "The launcher runs 'python -m <last path component>' "
+            '(the project name slug when ".")'
         )
     )
     pyretort_config["project_source_subdir"] = source_subdir
