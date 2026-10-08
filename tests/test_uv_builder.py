@@ -36,16 +36,20 @@ def make_config(
     python_version: str = "3.13.0",
     architecture: PythonArchitecture = PythonArchitecture.AMD64,
     create_dist_zip_file: bool = False,
+    install_as_package: bool = True,
+    main_file: str | None = None,
 ) -> BuildConfig:
-    """Create a package-mode BuildConfig rooted at project_dir."""
+    """Create a BuildConfig rooted at project_dir, in package mode by default."""
     return BuildConfig(
         project_dir_abs_path=project_dir,
         project_name="My App",
         project_version="0.1.0",
         project_source_subdir_rel_path=Path(source_subdir),
+        main_file_rel_path=None if main_file is None else Path(main_file),
+        install_as_package=install_as_package,
         python_version=python_version,
         python_architecture=architecture,
-        build_backend="uv_build",
+        build_backend="uv_build" if install_as_package else None,
         icon_file_rel_path=None if icon_file is None else Path(icon_file),
         create_dist_zip_file=create_dist_zip_file,
     )
@@ -55,16 +59,8 @@ def make_standalone_config(
     project_dir: Path, main_file: str = "main.py", source_subdir: str = "."
 ) -> BuildConfig:
     """Create a standalone-mode BuildConfig rooted at project_dir."""
-    return BuildConfig(
-        project_dir_abs_path=project_dir,
-        project_name="My App",
-        project_version="0.1.0",
-        project_source_subdir_rel_path=Path(source_subdir),
-        main_file_rel_path=Path(main_file),
-        install_as_package=False,
-        python_version="3.13.0",
-        python_architecture=PythonArchitecture.AMD64,
-        create_dist_zip_file=False,
+    return make_config(
+        project_dir, source_subdir, install_as_package=False, main_file=main_file
     )
 
 
