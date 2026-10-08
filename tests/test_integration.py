@@ -1,6 +1,6 @@
 """Integration tests for PyRetort.
 
-These tests verify end-to-end functionality and require network access for some tests.
+These tests verify that components work together; some require network access.
 """
 
 from pathlib import Path
