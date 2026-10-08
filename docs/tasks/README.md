@@ -67,7 +67,7 @@ uv run mypy src launcher
 | 19 | [19-unused-build-cache.md](19-unused-build-cache.md) | Прибрати мертвий код кешу збірки: `BuildConfig.build_hash` і `CacheManager` | — | DONE |
 | 20 | [20-trusted-publishing.md](20-trusted-publishing.md) | Публікація на PyPI з GitHub Actions без токенів (trusted publishing), репетиція на TestPyPI | 08, 09 | DONE |
 | 21 | [21-init-detects-standalone.md](21-init-detects-standalone.md) | `init` обирає standalone-режим для скриптів у корені проєкту | 12 | DONE |
-| 22 | [22-system-monitor-example.md](22-system-monitor-example.md) | Приклад SystemMonitor: GUI-застосунок у standalone-режимі | 12, 24 | TODO |
+| 22 | [22-system-monitor-example.md](22-system-monitor-example.md) | Приклад SystemMonitor: GUI-застосунок у standalone-режимі | 12, 24 | DONE |
 | 23 | [23-prune-done-tasks.md](23-prune-done-tasks.md) | Після релізу 0.2.0: прибрати виконані задачі з беклогу, рішення з них — у `docs/decisions.md` | v0.2.0 | TODO |
 | 24 | [24-keep-stdlib-zip.md](24-keep-stdlib-zip.md) | `build`: стандартна бібліотека вбудованого Python лишається файлом `python3XX.zip`, щоб uv збирав sdist-залежності й проєкти з будь-яким бекендом | 12 | DONE |
 
