@@ -146,3 +146,37 @@ class TestCleanupCommand:
 
         assert result.exit_code == 0, result.output
         assert remaining_artifact_dirs(project) == set()
+
+    def test_cleanup_fails_when_dir_cannot_be_removed(self, project: Path) -> None:
+        """Test that a directory locked by an open file makes cleanup exit with 1."""
+        with open(project / "build" / "artifact.txt", "rb"):
+            result = runner.invoke(
+                app, ["cleanup", "build", "-p", str(project / "pyproject.toml")]
+            )
+
+        assert result.exit_code == 1, result.output
+        assert "Error removing build directory" in result.stderr
+        assert "Cleanup incomplete" in result.stderr
+        assert "Cleanup complete." not in result.output
+
+    def test_cleanup_continues_after_failed_dir(self, project: Path) -> None:
+        """Test that a directory that cannot be removed does not stop the others."""
+        with open(project / "build" / "artifact.txt", "rb"):
+            result = runner.invoke(
+                app, ["cleanup", "all", "-p", str(project / "pyproject.toml")]
+            )
+
+        assert result.exit_code == 1, result.output
+        assert remaining_artifact_dirs(project) == {"build"}
+
+    def test_cleanup_quiet_still_fails_when_dir_cannot_be_removed(
+        self, project: Path
+    ) -> None:
+        """Test that quiet mode hides the failure messages but keeps exit code 1."""
+        with open(project / "build" / "artifact.txt", "rb"):
+            result = runner.invoke(
+                app, ["-q", "cleanup", "build", "-p", str(project / "pyproject.toml")]
+            )
+
+        assert result.exit_code == 1
+        assert result.output == ""

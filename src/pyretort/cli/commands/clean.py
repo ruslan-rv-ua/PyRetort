@@ -71,33 +71,48 @@ def cleanup_command(
     do_cache = "cache" in lower_targets or "all" in lower_targets
     do_build = "build" in lower_targets or "all" in lower_targets
 
+    succeeded: list[bool] = []
     if do_cache:
-        _cleanup_cache(ctx, project_dir)
+        succeeded.append(_cleanup_cache(ctx, project_dir))
 
     if do_build:
-        _cleanup_build(ctx, project_dir)
+        succeeded.append(_cleanup_build(ctx, project_dir))
+
+    if not all(succeeded):
+        echo(
+            ctx,
+            "Cleanup incomplete: some directories could not be removed.",
+            err=True,
+        )
+        raise typer.Exit(1)
 
     echo(ctx, "Cleanup complete.")
 
 
-def _cleanup_dir(ctx: typer.Context, path: Path, description: str) -> None:
-    """Remove a directory if it exists."""
+def _cleanup_dir(ctx: typer.Context, path: Path, description: str) -> bool:
+    """Remove a directory if it exists; return False if removing it failed."""
     if path.exists():
         try:
             shutil.rmtree(path)
             echo(ctx, f"Removed {description}: {path}")
         except OSError as e:
             echo(ctx, f"Error removing {description} '{path}': {e}", err=True)
+            return False
     else:
         echo(ctx, f"{description} not found: {path}")
+    return True
 
 
-def _cleanup_cache(ctx: typer.Context, project_dir: Path) -> None:
-    """Clean up the cache directory."""
-    _cleanup_dir(ctx, project_dir / DOWNLOAD_DIR_DEFAULT, "cache directory")
+def _cleanup_cache(ctx: typer.Context, project_dir: Path) -> bool:
+    """Clean up the cache directory; return False if that failed."""
+    return _cleanup_dir(ctx, project_dir / DOWNLOAD_DIR_DEFAULT, "cache directory")
 
 
-def _cleanup_build(ctx: typer.Context, project_dir: Path) -> None:
-    """Clean up the build and dist directories."""
-    _cleanup_dir(ctx, project_dir / BUILD_DIR_DEFAULT, "build directory")
-    _cleanup_dir(ctx, project_dir / DIST_DIR_DEFAULT, "dist directory")
+def _cleanup_build(ctx: typer.Context, project_dir: Path) -> bool:
+    """Clean up the build and dist directories; return False if either failed.
+
+    Both directories are attempted even if the first one fails.
+    """
+    build_ok = _cleanup_dir(ctx, project_dir / BUILD_DIR_DEFAULT, "build directory")
+    dist_ok = _cleanup_dir(ctx, project_dir / DIST_DIR_DEFAULT, "dist directory")
+    return build_ok and dist_ok
