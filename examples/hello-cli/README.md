@@ -8,10 +8,10 @@ The example shows what a command-line program needs:
 - `show_console_window = true` in `[tool.pyretort]`: the program runs with a
   console window, so its output is visible. GUI programs such as Simple RSS
   use `false`.
-- Arguments given to `hello-cli.exe` reach the program in `sys.argv`. Known
-  limitation: the current launcher passes them through `cmd.exe`, so quotes
-  are lost (`"two words"` arrives as two arguments) and `cmd.exe` interprets
-  characters such as `&`, `|`, `>`, `^` and `%`.
+- Arguments given to `hello-cli.exe` reach the program in `sys.argv` exactly
+  as typed: the launcher starts the bundled Python directly, without
+  `cmd.exe`, so `"two words"` stays one argument and characters such as `&`,
+  `|`, `>`, `^` and `%` are not interpreted.
 
 ## Build with PyRetort
 
@@ -43,13 +43,13 @@ Start the launcher from a terminal; when double-clicked, its console window
 closes as soon as the program ends.
 
 ```powershell
-examples\hello-cli\build\hello-cli-0.1.0-amd64\hello-cli.exe arg1 arg2
+examples\hello-cli\build\hello-cli-0.1.0-amd64\hello-cli.exe arg1 "two words"
 ```
 
 ```text
 Hello from hello-cli!
 Python 3.13.16 at C:\...\examples\hello-cli\build\hello-cli-0.1.0-amd64\hello-cli\python.exe
-Arguments: ['arg1', 'arg2']
+Arguments: ['arg1', 'two words']
 ```
 
 ## Clean up
