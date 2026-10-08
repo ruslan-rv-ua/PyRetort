@@ -21,7 +21,7 @@ from pyretort.types import PythonArchitecture
 def init_command(
     ctx: typer.Context,
     pyproject_toml_path: Path = typer.Option(
-        Path("pyproject.toml"),
+        Path.cwd() / "pyproject.toml",  # noqa: B008  # import-time cwd, task 05
         "--pyproject-toml",
         "-p",
         exists=True,

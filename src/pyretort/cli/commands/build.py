@@ -11,7 +11,7 @@ from pyretort.types import BuildBackend, BuildConfig
 def build_command(
     ctx: typer.Context,
     pyproject_toml: Path = typer.Option(
-        Path("pyproject.toml"),
+        Path.cwd() / "pyproject.toml",  # noqa: B008  # import-time cwd, task 05
         "--pyproject-toml",
         "-p",
         exists=True,
