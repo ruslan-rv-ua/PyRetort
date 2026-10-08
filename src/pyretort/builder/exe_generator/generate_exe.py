@@ -1,8 +1,13 @@
-"""This module provides functions for generating executable files on Windows.
+"""Write Windows launchers from the compiled templates and add icons to them.
 
 Functions:
-- generate_exe: Generates an executable file from a command string and an optional icon file.
-- add_icon_to_exe: Adds an icon file to an existing executable file.
+- launcher_template: The template for a Python architecture and the console flag.
+- generate_exe: Write a launcher that runs a command string, with an optional icon.
+- add_icon_to_exe: Add an icon file to an existing executable file.
+
+The templates are built from launcher/launcher.c by launcher/build.py. Each
+holds the marker COMMAND_PLACEHOLDER followed by zeros, COMMAND_CAPACITY UTF-16
+units in all; generate_exe overwrites that region with the command.
 """
 
 from __future__ import annotations
@@ -13,12 +18,25 @@ from typing import Any, BinaryIO
 
 import win32api
 
+from pyretort.types import PythonArchitecture
+
 ##### generate exe
 
-SCRIPT_DIR = Path(__file__).parent.absolute().resolve()
-EXE_TEMPLATE_FILE = SCRIPT_DIR / "genexe_template"
-MAX_CMD_LENGTH = 259
-REPLACE_SIGNATURE = (b"X" * MAX_CMD_LENGTH) + b"1"
+TEMPLATES_DIR = Path(__file__).parent.absolute().resolve() / "templates"
+MAX_CMD_LENGTH = 1023
+COMMAND_CAPACITY = MAX_CMD_LENGTH + 1
+COMMAND_PLACEHOLDER = "PYRETORT-LAUNCHER-COMMAND-PLACEHOLDER"
+
+
+def launcher_template(architecture: PythonArchitecture, show_console: bool) -> Path:
+    """Return the launcher template for a Python architecture and the console flag.
+
+    Args:
+        architecture: The architecture of the embedded Python the launcher starts.
+        show_console: True for the console variant, False for the GUI variant.
+    """
+    variant = "console" if show_console else "gui"
+    return TEMPLATES_DIR / f"launcher-{architecture.value}-{variant}"
 
 
 def generate_exe(
@@ -27,39 +45,43 @@ def generate_exe(
     icon_file: Path | None = None,
     show_console: bool = True,
 ) -> None:
-    """Generate an executable file from a command string and an optional icon file.
+    """Write a launcher that runs a command string, with an optional icon.
 
     Args:
         target (Path): The path to the target executable file.
-        command (str): The command string to be executed by the executable.
+        command (str): The command line the launcher starts; every {EXE_DIR}
+            in it is replaced with the launcher's directory at run time, and
+            the launcher's own arguments are appended verbatim.
         icon_file (Optional[Path], optional): The path to the icon file to be added
             to the executable. Defaults to None.
         show_console (bool, optional): Whether to show the console window
             when the executable is run. Defaults to True.
 
     Raises:
-        ValueError: If the command is longer than MAX_CMD_LENGTH characters;
+        ValueError: If the command is longer than MAX_CMD_LENGTH UTF-16 units;
             the template has room for exactly that many.
+        RuntimeError: If the template does not hold the placeholder exactly once.
     """
     target = target.absolute().resolve()
-    if target == EXE_TEMPLATE_FILE:
-        raise RuntimeError(
-            "Cannot overwrite the source EXE_TEMPLATE_FILE file! "
-            "Pick a different target executable name."
-        )
-    if len(command) > MAX_CMD_LENGTH:
+    encoded_command = command.encode("utf-16-le")
+    length = len(encoded_command) // 2
+    if length > MAX_CMD_LENGTH:
         raise ValueError(
-            f"Launcher command is {len(command)} characters long; "
+            f"Launcher command is {length} characters long; "
             f"the limit is {MAX_CMD_LENGTH}: {command}"
         )
-    with open(EXE_TEMPLATE_FILE, "rb") as f:
-        data = f.read()
-    command = command + "\0" * (MAX_CMD_LENGTH - len(command))
-    msg = command + ("1" if show_console else "0")
-    byte_encoded_string = msg.encode("ascii")
-    data = data.replace(REPLACE_SIGNATURE, byte_encoded_string)
-    with open(target, "wb") as f:
-        f.write(data)
+    template = launcher_template(PythonArchitecture.AMD64, True)
+    data = template.read_bytes()
+    marker = COMMAND_PLACEHOLDER.encode("utf-16-le")
+    if data.count(marker) != 1:
+        raise RuntimeError(
+            f"Launcher template {template} must contain the command placeholder "
+            f"exactly once, found {data.count(marker)} occurrences"
+        )
+    start = data.index(marker)
+    region_size = COMMAND_CAPACITY * 2
+    region = encoded_command.ljust(region_size, b"\0")
+    target.write_bytes(data[:start] + region + data[start + region_size :])
     if icon_file is not None:
         icon_file = Path(icon_file).absolute().resolve()
         add_icon_to_exe(target_exe_file=target, source_icon_file=icon_file)

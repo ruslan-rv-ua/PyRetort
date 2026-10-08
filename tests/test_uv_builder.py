@@ -148,7 +148,7 @@ class TestUVBuilderFailures:
 
     def test_build_turns_long_command_into_build_error(self, tmp_path: Path) -> None:
         """Test that a module name pushing the launcher command over the limit fails."""
-        config = make_config(tmp_path, "src/" + "m" * 250)
+        config = make_config(tmp_path, "src/" + "m" * 1100)
 
-        with pytest.raises(BuildError, match="the limit is 259"):
+        with pytest.raises(BuildError, match="the limit is 1023"):
             UVBuilder(config).build()
