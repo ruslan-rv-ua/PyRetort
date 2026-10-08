@@ -230,11 +230,14 @@ console window.
 - `Could not prepare the build directory …: [WinError 5] Access is denied: …`
   → the application from the previous build is still running, or another
   program holds its files. Close it and run the build again.
-- A traceback that ends with `HTTPStatusError: Client error '404 Not Found' for url '…/python-…-embed-….zip'`
-  → python.org has no Windows embeddable package for this `python_version`:
-  security-only releases don't ship one. Choose a release that has one: `init`
-  writes the version of the Python that runs PyRetort, which can be such a
-  release.
+- `python.org has no Windows embeddable package for Python … (…): https://www.python.org/ftp/python/…/python-…-embed-….zip`
+  → security-only releases don't ship one. Set `python_version` to a release
+  that has one: `init` writes the version of the Python that runs PyRetort,
+  which can be such a release.
+- `Could not download the embedded Python … (…): …` → check the internet
+  connection and run the build again. Behind a proxy, set the `HTTPS_PROXY`
+  and `HTTP_PROXY` environment variables: PyRetort downloads through httpx,
+  which reads them.
 - `uv pip install failed with exit code 2: … (os error 216)` → this computer
   cannot run the embedded Python of the chosen architecture: build `arm64` on
   Windows on ARM.
