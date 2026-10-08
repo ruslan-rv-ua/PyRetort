@@ -16,7 +16,9 @@ from pyretort.builder.uv_builder import UVBuilder
 from pyretort.types import BuildConfig, PythonArchitecture
 
 
-def make_config(project_dir: Path, source_subdir: str) -> BuildConfig:
+def make_config(
+    project_dir: Path, source_subdir: str, icon_file: str | None = None
+) -> BuildConfig:
     """Create a package-mode BuildConfig rooted at project_dir."""
     return BuildConfig(
         build_hash="abc123",
@@ -27,6 +29,7 @@ def make_config(project_dir: Path, source_subdir: str) -> BuildConfig:
         python_version="3.13.0",
         python_architecture=PythonArchitecture.AMD64,
         build_backend="uv_build",
+        icon_file_rel_path=None if icon_file is None else Path(icon_file),
         create_dist_zip_file=False,
     )
 
@@ -82,6 +85,23 @@ class TestUVBuilderLauncher:
 
         command = generate_exe.call_args.kwargs["command"]
         assert command.endswith(" -m my_pkg")
+
+    def test_build_passes_absolute_icon_path_from_project_dir(
+        self, tmp_path: Path, generate_exe: MagicMock, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test that the icon is looked up in the project, not the current directory."""
+        project_dir = tmp_path / "project"
+        (project_dir / "assets").mkdir(parents=True)
+        (project_dir / "assets" / "app.ico").write_bytes(b"")
+        elsewhere = tmp_path / "elsewhere"
+        elsewhere.mkdir()
+        monkeypatch.chdir(elsewhere)
+        config = make_config(project_dir, "src/my_pkg", icon_file="assets/app.ico")
+
+        UVBuilder(config).build()
+
+        icon_file = generate_exe.call_args.kwargs["icon_file"]
+        assert icon_file == project_dir / "assets" / "app.ico"
 
 
 @pytest.mark.usefixtures("generate_exe")

@@ -60,6 +60,6 @@ class UVBuilder(BaseBuilder):
         generate_exe(
             target=self.app_path / exe_file_name,
             command=command_str,
-            icon_file=self.config.icon_file_rel_path,
+            icon_file=self.config.icon_file_abs_path,
             show_console=self.config.show_console_window,
         )

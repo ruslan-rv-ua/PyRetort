@@ -194,6 +194,14 @@ class BuildConfig(BaseModel):
 
     @computed_field  # type: ignore[prop-decorator]  # mypy: unsupported on @property
     @property
+    def icon_file_abs_path(self) -> Path | None:
+        """Icon file resolved against the project directory, None without an icon."""
+        if self.icon_file_rel_path is None:
+            return None
+        return self.project_dir_abs_path / self.icon_file_rel_path
+
+    @computed_field  # type: ignore[prop-decorator]  # mypy: unsupported on @property
+    @property
     def main_module(self) -> str:
         """Module the launcher runs with 'python -m': 'src/simple_rss' -> 'simple_rss'."""
         return launcher_entry_point(
