@@ -18,6 +18,21 @@ uv run pyretort check -p examples/hello-cli/pyproject.toml
 uv run pyretort build -p examples/hello-cli/pyproject.toml
 ```
 
+## hello-script
+
+A console script that prints a greeting and a table with the Python version,
+the script path and its command-line arguments. It shows the smallest
+standalone-mode project (`main.py` and `helper.py` in the project root, no
+package, no `[build-system]`, the layout `uv init` creates) with one
+dependency, rich, installed into the embedded Python:
+`install_as_package = false`, `main_file = "main.py"`. See
+[hello-script/README.md](hello-script/README.md).
+
+```powershell
+uv run pyretort check -p examples/hello-script/pyproject.toml
+uv run pyretort build -p examples/hello-script/pyproject.toml
+```
+
 ## Simple RSS
 
 A wxPython RSS reader. It shows a GUI application without a console window
