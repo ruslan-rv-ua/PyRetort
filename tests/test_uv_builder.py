@@ -39,7 +39,6 @@ def make_config(
 ) -> BuildConfig:
     """Create a package-mode BuildConfig rooted at project_dir."""
     return BuildConfig(
-        build_hash="abc123",
         project_dir_abs_path=project_dir,
         project_name="My App",
         project_version="0.1.0",

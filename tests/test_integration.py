@@ -57,7 +57,6 @@ class TestBuildConfigIntegration:
         assert config.project_name_slug_underscore == "integration_test_app"
         assert config.python_version_short == "313"
         assert config.dist_name == "integration-test-app-1.2.3-amd64"
-        assert len(config.build_hash) == 64
 
 
 class TestCLIWorkflow:
