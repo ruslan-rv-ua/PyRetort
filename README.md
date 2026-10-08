@@ -53,7 +53,7 @@ From the source repository:
 uv tool install git+https://github.com/ruslan-rv-ua/PyRetort
 ```
 
-From PyPI (planned: PyRetort is not published there yet):
+From PyPI:
 
 ```powershell
 uv tool install pyretort
