@@ -142,8 +142,8 @@ the ZIP archive: it unpacks into the same single folder and runs on another
 Windows computer without Python.
 
 Four complete projects live in the repository: a console program, a console
-script in standalone mode, a wxPython application and a pywebview script in
-standalone mode, both with third-party dependencies. See the
+script in standalone mode, a wxPython application and a pywebview application
+in standalone mode. See the
 [examples](https://github.com/ruslan-rv-ua/PyRetort/blob/develop/examples/README.md).
 
 ### Commands
