@@ -71,3 +71,29 @@
 
 - pywebview, вимоги на Windows: https://pywebview.flowrl.com/guide/installation.html
 - datastar-py: https://github.com/starfederation/datastar-python
+
+## Результат
+
+Стан на 8 жовтня 2026, гілка `feature/22-system-monitor-example`: кроки 1, 2, 5, 6 і 7 виконано, крок 3 заблоковано ядром PyRetort, тому кроки 4 і 8 не виконано і статус лишається TODO.
+
+**Симптом.** `uv run pyretort build -p examples/SystemMonitor/pyproject.toml` завершується кодом 1 на кроці «Installing dependencies with uv»:
+
+```
+error: Failed to download and build `proxy-tools==0.1.0`
+  cause: Failed to create temporary virtualenv
+  cause: failed to copy file from ...\system-monitor\python313.zip to C:\scoop\persist\uv\cache\builds-v0\.tmpXXXXXX\Scripts\python313.zip: Access is denied. (os error 5)
+```
+
+**Причина.** `proxy-tools` (залежність pywebview) лежить на PyPI лише як sdist, тож uv збирає його в тимчасовому venv від цільового інтерпретатора і для embedded Python копіює `python313.zip` у `Scripts\` того venv. `PydistManager._unzip_pythonzip_file` у `src/pyretort/builder/pydist_manager.py` розпаковує стандартну бібліотеку в **теку** з назвою `python313.zip`; копіювання теки як файлу і дає `Access is denied`. Навіщо розпаковувати, у коді не пояснено. Перевірено: з незайманим embedded Python (zip-файл на місці, `._pth` від PyRetort) `uv venv` і `uv pip install proxy-tools==0.1.0` проходять. `check` цього не ловить.
+
+**Маскування кешем.** uv кешує зібране колесо, тому після будь-якої вдалої збірки `proxy-tools` на цій машині (хоч би у звичайному venv) `pyretort build` проходить і з текою: тимчасовий venv більше не потрібен. Відтворити падіння: `uv cache clean proxy-tools`, потім `build`. На чистій машині й у CI збірка впаде з першого разу.
+
+**Що працює у вбудованому Python.** Експеримент: у зламаній збірці теку `python313.zip` замінено zip-файлом з архіву python.org, `uv pip install -r pyproject.toml` поставив 25 пакетів, застосунок запущено як `python.exe app\app.py` і як `pythonw.exe app\app.py` (так, без консолі, його запускає GUI-лаунчер через `CREATE_NO_WINDOW`). pythonnet 3.2.1 і WebView2 відкривають вікно «System Monitor» на весь екран, uvicorn слухає 9999, вікно саме запитує `/updates`, числа CPU і пам'яті оновлюються (перевірено й у Chromium-браузері). Ризики з розділу «Контекст» щодо pythonnet і WebView2 не підтвердилися.
+
+**Відхилення від рішень.**
+
+- Рішення 3: бандл зафіксовано на `@v1.0.4`, а не на `@v1.0.0-RC.7`. README datastar-py застарів: RC.7 вийшов 16 грудня 2025, а datastar-py 1.0.3 (27 вересня 2026) вийшов уже після datastar v1.0.4 (21 вересня 2026), яку рекомендує посібник data-star.dev. Протокол SSE (`datastar-patch-signals`) в обох бандлах однаковий.
+- Рішення 3, «решта коду не змінюється»: `data_on_load` замінено на `data_init`. В обох бандлах, v1.0.4 і RC.7, плагіна `on-load` немає, є `init`; зі старим атрибутом сторінка не запитує `/updates` і назавжди показує 0.0%.
+- Крок 5: версії взято з `uv pip list` вбудованого Python експерименту: datastar-py 1.0.3, fastapi 0.143.0, htpy 26.5.1, psutil 7.2.2, pywebview 6.2.1, uvicorn 0.54.0.
+
+**Далі (рішення 6).** Потрібна окрема задача на ядро: лишати `python3XX.zip` файлом або розпаковувати в теку з іншою назвою і вписувати її в `._pth`, з тестом на sdist-залежність. Після неї — кроки 3, 4 і 8 цієї задачі: `build` з чистим кешем uv, запуск `system-monitor.exe`, статус DONE.
