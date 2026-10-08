@@ -1,5 +1,6 @@
 """Tests for pyretort.builder.pydist_manager module."""
 
+import io
 from pathlib import Path
 from unittest.mock import patch
 from zipfile import ZipFile
@@ -99,35 +100,6 @@ class TestPydistManagerExtractEmbeddedPython:
         assert (pydist_manager._pydist_path / "python313.dll").exists()
 
 
-class TestPydistManagerUnzipPythonzipFile:
-    """Tests for PydistManager._unzip_pythonzip_file method."""
-
-    def test_unzip_creates_directory(self, pydist_manager: PydistManager) -> None:
-        """Test that pythonXX.zip is converted to directory."""
-        pythonzip = pydist_manager._pydist_path / "python313.zip"
-        with ZipFile(pythonzip, "w") as zf:
-            zf.writestr("os.py", b"# os module")
-            zf.writestr("sys.py", b"# sys module")
-
-        pydist_manager._unzip_pythonzip_file("3.13.0")
-
-        pythonzip_dir = pydist_manager._pydist_path / "python313.zip"
-        assert pythonzip_dir.is_dir()
-        assert (pythonzip_dir / "os.py").exists()
-        assert (pythonzip_dir / "sys.py").exists()
-
-    def test_unzip_removes_temp_file(self, pydist_manager: PydistManager) -> None:
-        """Test that temporary zip file is removed after extraction."""
-        pythonzip = pydist_manager._pydist_path / "python311.zip"
-        with ZipFile(pythonzip, "w") as zf:
-            zf.writestr("test.py", b"test")
-
-        pydist_manager._unzip_pythonzip_file("3.11.0")
-
-        temp_zip = pydist_manager._pydist_path / "python311.temp_zip"
-        assert not temp_zip.exists()
-
-
 class TestPydistManagerVerifyEmbeddedPython:
     """Tests for PydistManager._verify_embedded_python method."""
 
@@ -203,15 +175,36 @@ class TestPydistManagerInstallEmbeddedPython:
                 pydist_manager, "_download_embedded_python", return_value=archive
             ) as mock_download,
             patch.object(pydist_manager, "_extract_embedded_python") as mock_extract,
-            patch.object(pydist_manager, "_unzip_pythonzip_file") as mock_unzip,
             patch.object(pydist_manager, "_verify_embedded_python") as mock_verify,
         ):
             pydist_manager.install_embedded_python("3.13.0", PythonArchitecture.AMD64)
 
             mock_download.assert_called_once_with("3.13.0", PythonArchitecture.AMD64)
             mock_extract.assert_called_once_with(archive)
-            mock_unzip.assert_called_once_with(version="3.13.0")
             mock_verify.assert_called_once()
+
+    def test_install_keeps_stdlib_zip_as_file(
+        self, pydist_manager: PydistManager, download_dir: Path, pydist_dir: Path
+    ) -> None:
+        """Test that python3XX.zip stays the file from the archive, byte for byte.
+
+        uv copies that file into the temporary venv in which it builds the
+        project and the dependencies without a wheel; a directory of that
+        name makes the copy fail.
+        """
+        stdlib_buffer = io.BytesIO()
+        with ZipFile(stdlib_buffer, "w") as stdlib_zip:
+            stdlib_zip.writestr("os.py", b"# os module")
+        stdlib_bytes = stdlib_buffer.getvalue()
+        with ZipFile(download_dir / "python-3.13.0-embed-amd64.zip", "w") as zf:
+            zf.writestr("python.exe", b"fake executable")
+            zf.writestr("python313.zip", stdlib_bytes)
+
+        pydist_manager.install_embedded_python("3.13.0", PythonArchitecture.AMD64)
+
+        stdlib_zip_path = pydist_dir / "python313.zip"
+        assert stdlib_zip_path.is_file()
+        assert stdlib_zip_path.read_bytes() == stdlib_bytes
 
 
 @pytest.mark.slow
@@ -227,4 +220,4 @@ class TestPydistManagerIntegration:
         manager.install_embedded_python("3.13.0", PythonArchitecture.AMD64)
 
         assert manager.python_executable.exists()
-        assert (pydist_dir / "python313.zip").is_dir()
+        assert (pydist_dir / "python313.zip").is_file()
