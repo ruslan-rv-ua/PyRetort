@@ -141,9 +141,9 @@ To share the application, copy the `build\hello-0.1.0-amd64` folder or send
 the ZIP archive: it unpacks into the same single folder and runs on another
 Windows computer without Python.
 
-Three complete projects live in the repository: a console program, a console
-script in standalone mode and a GUI application with third-party
-dependencies. See the
+Four complete projects live in the repository: a console program, a console
+script in standalone mode, a wxPython application and a pywebview application
+in standalone mode. See the
 [examples](https://github.com/ruslan-rv-ua/PyRetort/blob/develop/examples/README.md).
 
 ### Commands

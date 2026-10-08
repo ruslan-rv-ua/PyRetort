@@ -33,6 +33,22 @@ uv run pyretort check -p examples/hello-script/pyproject.toml
 uv run pyretort build -p examples/hello-script/pyproject.toml
 ```
 
+## SystemMonitor
+
+A GUI application that shows the CPU and memory usage in a full-screen
+pywebview window: a FastAPI server with uvicorn runs in a background thread
+and datastar refreshes the page over server-sent events. It shows a
+standalone-mode project with heavy dependencies (`install_as_package = false`,
+`main_file = "app.py"`, six dependencies pinned with `==`) and no console
+window (`show_console_window = false`). The application needs an internet
+connection and a free port 9999. See
+[SystemMonitor/README.md](SystemMonitor/README.md).
+
+```powershell
+uv run pyretort check -p examples/SystemMonitor/pyproject.toml
+uv run pyretort build -p examples/SystemMonitor/pyproject.toml
+```
+
 ## Simple RSS
 
 A wxPython RSS reader. It shows a GUI application without a console window

@@ -71,3 +71,35 @@
 
 - pywebview, вимоги на Windows: https://pywebview.flowrl.com/guide/installation.html
 - datastar-py: https://github.com/starfederation/datastar-python
+
+## Результат
+
+Виконано 8 жовтня 2026 у гілці `feature/22-system-monitor-example` за два заходи. Спершу виконано кроки 1, 2, 5, 6 і 7, а крок 3 заблокувало ядро PyRetort (нижче); після задачі 24 виконано кроки 3, 4 і 8.
+
+**Симптом блокера (до задачі 24).** `uv run pyretort build -p examples/SystemMonitor/pyproject.toml` завершувався кодом 1 на кроці «Installing dependencies with uv»:
+
+```
+error: Failed to download and build `proxy-tools==0.1.0`
+  cause: Failed to create temporary virtualenv
+  cause: failed to copy file from ...\system-monitor\python313.zip to C:\scoop\persist\uv\cache\builds-v0\.tmpXXXXXX\Scripts\python313.zip: Access is denied. (os error 5)
+```
+
+**Причина.** `proxy-tools` (залежність pywebview) лежить на PyPI лише як sdist, тож uv збирає його в тимчасовому venv від цільового інтерпретатора і для embedded Python копіює `python313.zip` у `Scripts\` того venv. `PydistManager._unzip_pythonzip_file` у `src/pyretort/builder/pydist_manager.py` розпаковував стандартну бібліотеку в **теку** з назвою `python313.zip`; копіювання теки як файлу і давало `Access is denied`. Навіщо розпаковувати, у коді не було пояснено. Перевірено: з незайманим embedded Python (zip-файл на місці, `._pth` від PyRetort) `uv venv` і `uv pip install proxy-tools==0.1.0` проходять. `check` цього не ловить.
+
+**Маскування кешем.** uv кешує зібране колесо, тому після будь-якої вдалої збірки `proxy-tools` на цій машині (хоч би у звичайному venv) `pyretort build` проходив і з текою: тимчасовий venv більше не потрібен. Відтворення падіння: `uv cache clean proxy-tools`, потім `build`; так само перевірено й виправлення. На чистій машині й у CI збірка падала б з першого разу.
+
+**Що працює у вбудованому Python.** Експеримент: у зламаній збірці теку `python313.zip` замінено zip-файлом з архіву python.org, `uv pip install -r pyproject.toml` поставив 25 пакетів, застосунок запущено як `python.exe app\app.py` і як `pythonw.exe app\app.py` (GUI-лаунчер запускає `python.exe` без консолі через `CREATE_NO_WINDOW`). pythonnet 3.2.1 і WebView2 відкривають вікно «System Monitor» на весь екран, uvicorn слухає 9999, вікно саме запитує `/updates`, числа CPU і пам'яті оновлюються (перевірено й у Chromium-браузері). Ризики з розділу «Контекст» щодо pythonnet і WebView2 не підтвердилися.
+
+**Відхилення від рішень.**
+
+- Рішення 3: бандл зафіксовано на `@v1.0.4`, а не на `@v1.0.0-RC.7`. README datastar-py застарів: RC.7 вийшов 16 грудня 2025, а datastar-py 1.0.3 (27 вересня 2026) вийшов уже після datastar v1.0.4 (21 вересня 2026), яку рекомендує посібник data-star.dev. Протокол SSE (`datastar-patch-signals`) в обох бандлах однаковий.
+- Рішення 3, «решта коду не змінюється»: `data_on_load` замінено на `data_init`. В обох бандлах, v1.0.4 і RC.7, плагіна `on-load` немає, є `init`; зі старим атрибутом сторінка не запитує `/updates` і назавжди показує 0.0%.
+- Крок 5: версії взято з `uv pip list` вбудованого Python експерименту: datastar-py 1.0.3, fastapi 0.143.0, htpy 26.5.1, psutil 7.2.2, pywebview 6.2.1, uvicorn 0.54.0.
+
+**Рішення 6.** Ядро полатано в задачі 24: `python3XX.zip` лишається файлом, з e2e-тестом на бекенд `setuptools`. Після неї, з `develop` злитим у цю гілку, виконано кроки 3, 4 і 8.
+
+**Крок 3 після задачі 24.** `uv cache clean proxy-tools` (прибрано 14 файлів), потім `check` і `build` для `examples/SystemMonitor/pyproject.toml` — обидві команди з кодом 0: uv зібрав `proxy-tools==0.1.0` із sdist у тимчасовому venv від вбудованого Python. У збірці `python313.zip` — файл на 3,8 МБ, `._pth` перелічує `python313.zip`, `.`, `app`. `uv pip list --python examples\SystemMonitor\build\system-monitor-0.1.0-amd64\system-monitor\python.exe` показує 25 пакетів: шість прямих залежностей у зафіксованих версіях, `proxy-tools 0.1.0`, `pythonnet 3.2.1`. `dist\system-monitor-0.1.0-amd64.zip` — 16,5 МБ.
+
+**Крок 4.** `system-monitor.exe` запускає `python.exe app\app.py` з `CREATE_NO_WINDOW`; цей процес відкриває вікно «System Monitor» на весь екран і слухає `127.0.0.1:9999`. Процес `msedgewebview2` тримає відкрите з'єднання з портом 9999, тобто сторінка сама запросила `/updates`; `/updates` віддає події `datastar-patch-signals` з новими значеннями що ~4 с, а на знімках вікна (PrintWindow з інтервалом 6 с) CPU змінюється з 1,0 % на 0,9 %, пам'ять 51,0 %. Закриття вікна (WM_CLOSE, як Alt+F4) завершує `python.exe` і лаунчер, порт звільняється.
+
+**Крок 8.** Чотири команди з [README.md](README.md) зелені: `uv run pytest` — 271 passed, 20 skipped, 7 deselected; `ruff check`, `ruff format --check` і `mypy` без помилок. Код у `src`, `tests` і `launcher` ця задача не змінює.
