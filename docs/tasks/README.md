@@ -54,7 +54,7 @@ uv run mypy src
 | 10 | [10-examples.md](10-examples.md) | Приклади: прибрати застарілі, додати hello-cli | 04 | TODO |
 | 11 | [11-release-0.1.0.md](11-release-0.1.0.md) | Реліз 0.1.0: тег, колесо, перевірка встановлення | 07, 08, 09, 10, 13 | TODO |
 | 12 | [12-standalone-mode.md](12-standalone-mode.md) | Після 0.1: режим без встановлення пакета | 11 | TODO |
-| 13 | [13-cleanup-errors.md](13-cleanup-errors.md) | `cleanup`: код 1, коли теку не вдалося видалити | 01 | TODO |
+| 13 | [13-cleanup-errors.md](13-cleanup-errors.md) | `cleanup`: код 1, коли теку не вдалося видалити | 01 | DONE |
 
 ## Ідеї після 0.1 без специфікації
 
