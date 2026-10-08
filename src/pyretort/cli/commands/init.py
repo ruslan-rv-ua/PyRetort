@@ -119,10 +119,7 @@ def _build_pyretort_section(project_path: Path, source_subdir: Path) -> Table:
     )
     main_file = _find_main_file(project_path / source_subdir)
     if main_file is None:
-        pyretort_config.add(
-            tomlkit.comment("TODO: Update this to point to your main application file")
-        )
-        pyretort_config["main_file"] = "main.py"
+        pyretort_config.add(tomlkit.comment('main_file = "main.py"'))
     else:
         pyretort_config["main_file"] = main_file
 

@@ -122,6 +122,33 @@ class TestInitCommand:
 
         assert pyretort_config.get("main_file") == "main.py"
 
+    def test_init_leaves_main_file_commented_out_when_none_found(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that without main.py, app.py or run.py init writes no main_file key."""
+        pyproject = tmp_path / "pyproject.toml"
+        data = {
+            "project": {"name": "test-app", "version": "0.1.0"},
+            "build-system": {
+                "requires": ["hatchling"],
+                "build-backend": "hatchling.build",
+            },
+        }
+        pyproject.write_bytes(tomli_w.dumps(data).encode())
+        package_dir = tmp_path / "src" / "test_app"
+        package_dir.mkdir(parents=True)
+        (package_dir / "__init__.py").write_text("")
+        (package_dir / "__main__.py").write_text("")
+
+        result = runner.invoke(app, ["init", "-p", str(pyproject)])
+
+        assert result.exit_code == 0, result.output
+        content = pyproject.read_text(encoding="utf-8")
+        pyretort_config = tomllib.loads(content)["tool"]["pyretort"]
+        assert "main_file" not in pyretort_config
+        assert '# main_file = "main.py"' in content
+        assert "TODO" not in content
+
     def test_init_nonexistent_file(self, tmp_path: Path) -> None:
         """Test init command with non-existent pyproject.toml."""
         nonexistent = tmp_path / "nonexistent.toml"
