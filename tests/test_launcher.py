@@ -96,3 +96,46 @@ class TestLauncherArguments:
 
         assert probe_result(completed)["argv"] == args
         assert not (tmp_path / "out.txt").exists()
+
+
+class TestLauncherProcess:
+    """Tests for how the launcher starts, finds and waits for the child Python."""
+
+    def test_launcher_starts_python_directly(self, tmp_path: Path) -> None:
+        """Test that the launcher itself is the parent of the child Python."""
+        launcher = make_launcher(tmp_path)
+
+        with subprocess.Popen(
+            [str(launcher)], stdout=subprocess.PIPE, cwd=tmp_path
+        ) as process:
+            stdout, _ = process.communicate(timeout=60)
+
+        assert json.loads(stdout)["ppid"] == process.pid
+
+    def test_launcher_expands_exe_dir_with_spaces_and_non_ascii(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that {EXE_DIR} resolves to a directory with spaces and non-ASCII."""
+        launcher = make_launcher(tmp_path / "dir with space тест 日本")
+
+        completed = run_launcher(launcher, "arg1")
+
+        assert probe_result(completed)["argv"] == ["arg1"]
+
+    def test_launcher_returns_child_exit_code(self, tmp_path: Path) -> None:
+        """Test that the launcher exits with the child's exit code."""
+        launcher = make_launcher(tmp_path)
+
+        completed = run_launcher(launcher, env={"PROBE_EXIT_CODE": "3"})
+
+        assert completed.returncode == 3
+
+    def test_launcher_passes_stdin(self, tmp_path: Path) -> None:
+        """Test that the child reads what was written to the launcher's stdin."""
+        launcher = make_launcher(tmp_path)
+
+        completed = run_launcher(
+            launcher, env={"PROBE_READ_STDIN": "1"}, stdin=b"hello from stdin"
+        )
+
+        assert probe_result(completed)["stdin"] == "hello from stdin"
