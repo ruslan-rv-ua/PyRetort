@@ -48,9 +48,11 @@ into that Python and creates `examples/Simple RSS/build/simple-rss-0.1.0-amd64/`
 - `simple-rss.exe`, the launcher that starts the application;
 - `simple-rss/`, the embedded Python with the installed packages.
 
-Copy the whole folder to run Simple RSS on another Windows PC without an
-installed Python. To remove `build/`, `dist/` and `downloads/` from
-`examples/Simple RSS/`, run
+`create_dist_zip_file = true` also packs that folder into
+`examples/Simple RSS/dist/simple-rss-0.1.0-amd64.zip`, which unpacks into a
+single `simple-rss-0.1.0-amd64/` folder. Copy the folder or share the archive
+to run Simple RSS on another Windows PC without an installed Python. To remove
+`build/`, `dist/` and `downloads/` from `examples/Simple RSS/`, run
 `uv run pyretort cleanup -p "examples/Simple RSS/pyproject.toml"`.
 
 ## Default RSS Feeds

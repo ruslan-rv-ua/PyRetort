@@ -33,9 +33,10 @@ result is `examples/hello-cli/build/hello-cli-0.1.0-amd64/`:
 The folder is self-contained: copy it to another Windows PC and
 `hello-cli.exe` runs there without an installed Python.
 
-`create_dist_zip_file = true` asks PyRetort to pack this folder into a ZIP
-archive in `examples/hello-cli/dist/`; the current version does not create the
-archive yet.
+`create_dist_zip_file = true` makes the build also pack the folder into
+`examples/hello-cli/dist/hello-cli-0.1.0-amd64.zip`, ready to share. The
+archive unpacks into a single `hello-cli-0.1.0-amd64/` folder with
+`hello-cli.exe` inside.
 
 ## Run
 
