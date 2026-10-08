@@ -2,9 +2,16 @@
 
 from __future__ import annotations
 
+import subprocess
+from collections.abc import Iterator
+from dataclasses import dataclass
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
+import pytest
+
+from pyretort.builder.errors import BuildError
+from pyretort.builder.pydist_manager import PydistManager
 from pyretort.builder.uv_builder import UVBuilder
 from pyretort.types import BuildConfig, PythonArchitecture
 
@@ -24,24 +31,86 @@ def make_config(project_dir: Path, source_subdir: str) -> BuildConfig:
     )
 
 
+def fake_pydist_manager(pydist_path: Path, downloader: object) -> MagicMock:
+    """Stand in for PydistManager: same python.exe location, no download."""
+    manager = MagicMock(spec=PydistManager)
+    manager.python_executable = pydist_path / "python.exe"
+    return manager
+
+
+@dataclass
+class BuildExternals:
+    """The mocks that replace what a build needs from outside the project."""
+
+    pydist_manager_class: MagicMock
+    run: MagicMock
+    which: MagicMock
+
+
+@pytest.fixture
+def externals() -> Iterator[BuildExternals]:
+    """Replace the Python download, the uv call and the uv lookup in PATH."""
+    with (
+        patch(
+            "pyretort.builder.uv_builder.PydistManager",
+            side_effect=fake_pydist_manager,
+        ) as pydist_manager_class,
+        patch("subprocess.run") as run,
+        patch("shutil.which", return_value="C:\\tools\\uv.exe") as which,
+    ):
+        yield BuildExternals(pydist_manager_class, run, which)
+
+
+@pytest.fixture
+def generate_exe() -> Iterator[MagicMock]:
+    """Replace the launcher generator so no exe is written."""
+    with patch("pyretort.builder.uv_builder.generate_exe") as mock:
+        yield mock
+
+
+@pytest.mark.usefixtures("externals")
 class TestUVBuilderLauncher:
     """Tests for the launcher command UVBuilder passes to generate_exe."""
 
-    def test_build_launcher_runs_main_module(self, tmp_path: Path) -> None:
+    def test_build_launcher_runs_main_module(
+        self, tmp_path: Path, generate_exe: MagicMock
+    ) -> None:
         """Test that the launcher runs 'python -m <package dir>', not the slug."""
         config = make_config(tmp_path, "src/my_pkg")
 
-        with (
-            patch("pyretort.builder.uv_builder.PydistManager") as pydist_manager_class,
-            patch("pyretort.builder.uv_builder.subprocess.run"),
-            patch("pyretort.builder.uv_builder.generate_exe") as generate_exe,
-        ):
-            builder = UVBuilder(config)
-            pydist_manager_class.return_value.python_executable = (
-                builder.pydist_path / "python.exe"
-            )
-
-            builder.build()
+        UVBuilder(config).build()
 
         command = generate_exe.call_args.kwargs["command"]
         assert command.endswith(" -m my_pkg")
+
+
+@pytest.mark.usefixtures("generate_exe")
+class TestUVBuilderFailures:
+    """Tests for the build failures UVBuilder reports as BuildError."""
+
+    def test_build_fails_clearly_when_uv_is_missing(
+        self, tmp_path: Path, externals: BuildExternals
+    ) -> None:
+        """Test that a missing uv aborts the build before anything is created."""
+        config = make_config(tmp_path, "src/my_pkg")
+        externals.which.return_value = None
+
+        with pytest.raises(BuildError, match="uv was not found"):
+            UVBuilder(config).build()
+
+        assert not (tmp_path / "build").exists()
+
+    def test_build_reports_uv_stderr_on_failure(
+        self, tmp_path: Path, externals: BuildExternals
+    ) -> None:
+        """Test that a failed uv install surfaces uv's exit code and stderr."""
+        config = make_config(tmp_path, "src/my_pkg")
+        externals.run.side_effect = subprocess.CalledProcessError(
+            1, ["uv", "pip", "install"], stderr="No solution found"
+        )
+
+        with pytest.raises(BuildError) as exc_info:
+            UVBuilder(config).build()
+
+        assert "exit code 1" in str(exc_info.value)
+        assert "No solution found" in str(exc_info.value)

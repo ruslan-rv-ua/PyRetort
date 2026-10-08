@@ -21,8 +21,6 @@ class BaseBuilder:
         self.pydist_path = self.app_path / PYDIST_DIR_DEFAULT
         self.source_dist_path = self.app_path / self.config.project_name_slug_dash
 
-        self._create_directories()
-
     def _create_directories(self) -> None:
         self.download_path.mkdir(parents=True, exist_ok=True)
         self.build_path.mkdir(parents=True, exist_ok=True)
