@@ -47,8 +47,8 @@ class UVBuilder(BaseBuilder):
         python_exe_relative = pydist_manager.python_executable.relative_to(
             self.app_path
         )
-        package_name = self.config.project_name_slug_underscore
-        command_str = f'"{{EXE_DIR}}\\{python_exe_relative}" -m {package_name}'
+        main_module = self.config.main_module
+        command_str = f'"{{EXE_DIR}}\\{python_exe_relative}" -m {main_module}'
         exe_file_name = f"{self.config.project_name_slug_dash}.exe"
         generate_exe(
             target=self.app_path / exe_file_name,

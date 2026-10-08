@@ -8,7 +8,7 @@ from typing import Any
 import pytest
 import tomli_w
 
-from pyretort.types import BuildBackend, BuildConfig, PythonArchitecture
+from pyretort.types import BuildConfig, PythonArchitecture
 
 
 @pytest.fixture
@@ -22,7 +22,7 @@ def sample_build_config() -> BuildConfig:
         project_source_subdir_rel_path=Path("src/test_project"),
         python_version="3.11.0",
         python_architecture=PythonArchitecture.AMD64,
-        build_backend=BuildBackend.UV,
+        build_backend="uv_build",
         create_dist_zip_file=False,
     )
 
@@ -64,6 +64,7 @@ def valid_pyproject_toml(tmp_path: Path, valid_pyproject_data: dict[str, Any]) -
     source_dir.mkdir(parents=True, exist_ok=True)
     (source_dir / "main.py").write_text("print('hello')")
     (source_dir / "__init__.py").write_text("")
+    (source_dir / "__main__.py").write_text("")
 
     return pyproject_path
 
@@ -111,6 +112,7 @@ def invalid_pyproject_old_python(tmp_path: Path) -> Path:
     source_dir = tmp_path / "src" / "test_app"
     source_dir.mkdir(parents=True, exist_ok=True)
     (source_dir / "__init__.py").write_text("")
+    (source_dir / "__main__.py").write_text("")
 
     return pyproject_path
 

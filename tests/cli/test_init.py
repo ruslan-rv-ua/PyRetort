@@ -186,6 +186,125 @@ class TestInitCommand:
         assert "amd64, win32, arm64" in pyproject.read_text(encoding="utf-8")
 
 
+class TestInitCommandExistingSection:
+    """Tests for how init treats an existing [tool.pyretort] section."""
+
+    def test_init_refuses_to_overwrite_existing_section(self, tmp_path: Path) -> None:
+        """Test that init exits with 1 and leaves the file untouched without --force."""
+        pyproject = tmp_path / "pyproject.toml"
+        data = {
+            "project": {"name": "test-app", "version": "0.1.0"},
+            "build-system": {
+                "requires": ["hatchling"],
+                "build-backend": "hatchling.build",
+            },
+            "tool": {"pyretort": {"python_version": "3.11.0", "custom_key": "keep"}},
+        }
+        pyproject.write_bytes(tomli_w.dumps(data).encode())
+        original = pyproject.read_text(encoding="utf-8")
+
+        result = runner.invoke(app, ["init", "-p", str(pyproject)])
+
+        assert result.exit_code == 1
+        assert (
+            "pyproject.toml already contains [tool.pyretort]; use --force to overwrite"
+            in result.stderr
+        )
+        assert pyproject.read_text(encoding="utf-8") == original
+
+    def test_init_force_overwrites_existing_section(self, tmp_path: Path) -> None:
+        """Test that --force replaces the existing [tool.pyretort] section."""
+        pyproject = tmp_path / "pyproject.toml"
+        data = {
+            "project": {"name": "test-app", "version": "0.1.0"},
+            "build-system": {
+                "requires": ["hatchling"],
+                "build-backend": "hatchling.build",
+            },
+            "tool": {"pyretort": {"python_version": "3.11.0", "custom_key": "keep"}},
+        }
+        pyproject.write_bytes(tomli_w.dumps(data).encode())
+
+        result = runner.invoke(app, ["init", "--force", "-p", str(pyproject)])
+
+        assert result.exit_code == 0, result.output
+        updated_data = tomllib.loads(pyproject.read_text(encoding="utf-8"))
+        pyretort_config = updated_data["tool"]["pyretort"]
+        assert "custom_key" not in pyretort_config
+        assert "project_source_subdir" in pyretort_config
+        assert updated_data["project"]["name"] == "test-app"
+
+
+class TestInitCommandEntryPoint:
+    """Tests for the __main__.py warning and the explanatory comments."""
+
+    def test_init_warns_when_dunder_main_is_missing(self, tmp_path: Path) -> None:
+        """Test that a package without __main__.py gets a warning but exit code 0."""
+        pyproject = tmp_path / "pyproject.toml"
+        data = {
+            "project": {"name": "my-app", "version": "0.1.0"},
+            "build-system": {
+                "requires": ["hatchling"],
+                "build-backend": "hatchling.build",
+            },
+        }
+        pyproject.write_bytes(tomli_w.dumps(data).encode())
+        package_dir = tmp_path / "src" / "my_app"
+        package_dir.mkdir(parents=True)
+        (package_dir / "__init__.py").write_text("")
+
+        result = runner.invoke(app, ["init", "-p", str(pyproject)])
+
+        assert result.exit_code == 0, result.output
+        expected_path = package_dir / "__main__.py"
+        assert (
+            f"warning: {expected_path} not found; "
+            "'pyretort build' will fail until it exists"
+        ) in result.stdout
+
+    def test_init_does_not_warn_when_dunder_main_exists(self, tmp_path: Path) -> None:
+        """Test that a package with __main__.py produces no warning."""
+        pyproject = tmp_path / "pyproject.toml"
+        data = {
+            "project": {"name": "my-app", "version": "0.1.0"},
+            "build-system": {
+                "requires": ["hatchling"],
+                "build-backend": "hatchling.build",
+            },
+        }
+        pyproject.write_bytes(tomli_w.dumps(data).encode())
+        package_dir = tmp_path / "src" / "my_app"
+        package_dir.mkdir(parents=True)
+        (package_dir / "__init__.py").write_text("")
+        (package_dir / "__main__.py").write_text("")
+
+        result = runner.invoke(app, ["init", "-p", str(pyproject)])
+
+        assert result.exit_code == 0, result.output
+        assert "warning" not in result.output
+
+    def test_init_comments_explain_install_as_package_and_main_file(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that the generated section explains both fields' real semantics."""
+        pyproject = tmp_path / "pyproject.toml"
+        data = {
+            "project": {"name": "test-app", "version": "0.1.0"},
+            "build-system": {
+                "requires": ["hatchling"],
+                "build-backend": "hatchling.build",
+            },
+        }
+        pyproject.write_bytes(tomli_w.dumps(data).encode())
+
+        result = runner.invoke(app, ["init", "-p", str(pyproject)])
+
+        assert result.exit_code == 0, result.output
+        content = pyproject.read_text(encoding="utf-8")
+        assert "Must be true: standalone mode (false) is not supported yet" in content
+        assert "Used only when install_as_package = false; ignored otherwise" in content
+
+
 class TestInitCommandSourceDiscovery:
     """Tests for source directory discovery in init command."""
 
@@ -208,7 +327,7 @@ class TestInitCommandSourceDiscovery:
         updated_data = tomllib.loads(pyproject.read_text(encoding="utf-8"))
         source_subdir = updated_data["tool"]["pyretort"]["project_source_subdir"]
 
-        assert "src" in source_subdir or source_subdir == "."
+        assert source_subdir == "src/my_project"
 
     def test_init_discovers_flat_layout(self, tmp_path: Path) -> None:
         """Test that init discovers flat layout."""

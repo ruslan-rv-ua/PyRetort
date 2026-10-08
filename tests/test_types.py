@@ -6,7 +6,6 @@ import pytest
 
 from pyretort.types import (
     MIN_PYTHON_VERSION,
-    BuildBackend,
     BuildConfig,
     PythonArchitecture,
 )
@@ -38,22 +37,6 @@ class TestPythonArchitecture:
         assert PythonArchitecture("arm64") == PythonArchitecture.ARM64
 
 
-class TestBuildBackend:
-    """Tests for BuildBackend enum."""
-
-    def test_uv_value(self) -> None:
-        assert BuildBackend.UV == "uv_build"
-        assert BuildBackend.UV.value == "uv_build"
-
-    def test_hatchling_value(self) -> None:
-        assert BuildBackend.HATCHLING == "hatchling.build"
-        assert BuildBackend.HATCHLING.value == "hatchling.build"
-
-    def test_from_string(self) -> None:
-        assert BuildBackend("uv_build") == BuildBackend.UV
-        assert BuildBackend("hatchling.build") == BuildBackend.HATCHLING
-
-
 class TestBuildConfig:
     """Tests for BuildConfig model."""
 
@@ -74,7 +57,7 @@ class TestBuildConfig:
             project_source_subdir_rel_path=Path("src"),
             python_version="3.11.0",
             python_architecture=PythonArchitecture.AMD64,
-            build_backend=BuildBackend.UV,
+            build_backend="uv_build",
             create_dist_zip_file=False,
         )
         assert config.python_version == "3.11.0"
@@ -89,7 +72,7 @@ class TestBuildConfig:
             project_source_subdir_rel_path=Path("src"),
             python_version="3.13.1",
             python_architecture=PythonArchitecture.AMD64,
-            build_backend=BuildBackend.UV,
+            build_backend="uv_build",
             create_dist_zip_file=False,
         )
         assert config.python_version == "3.13.1"
@@ -107,7 +90,7 @@ class TestBuildConfig:
                 project_source_subdir_rel_path=Path("src"),
                 python_version="3.10.0",
                 python_architecture=PythonArchitecture.AMD64,
-                build_backend=BuildBackend.UV,
+                build_backend="uv_build",
                 create_dist_zip_file=False,
             )
 
@@ -124,7 +107,7 @@ class TestBuildConfig:
                 project_source_subdir_rel_path=Path("src"),
                 python_version="2.7.18",
                 python_architecture=PythonArchitecture.AMD64,
-                build_backend=BuildBackend.UV,
+                build_backend="uv_build",
                 create_dist_zip_file=False,
             )
 
@@ -139,7 +122,7 @@ class TestBuildConfig:
                 project_source_subdir_rel_path=Path("src"),
                 python_version="not.a.version",
                 python_architecture=PythonArchitecture.AMD64,
-                build_backend=BuildBackend.UV,
+                build_backend="uv_build",
                 create_dist_zip_file=False,
             )
 
@@ -153,7 +136,7 @@ class TestBuildConfig:
             project_source_subdir_rel_path=Path("src"),
             python_version="3.11.9",
             python_architecture=PythonArchitecture.AMD64,
-            build_backend=BuildBackend.UV,
+            build_backend="uv_build",
             create_dist_zip_file=False,
         )
         assert config.python_version_short == "311"
@@ -168,7 +151,7 @@ class TestBuildConfig:
             project_source_subdir_rel_path=Path("src"),
             python_version="3.13.1",
             python_architecture=PythonArchitecture.AMD64,
-            build_backend=BuildBackend.UV,
+            build_backend="uv_build",
             create_dist_zip_file=False,
         )
         assert config.python_version_short == "313"
@@ -183,7 +166,7 @@ class TestBuildConfig:
             project_source_subdir_rel_path=Path("src"),
             python_version="3.13.0",
             python_architecture=PythonArchitecture.AMD64,
-            build_backend=BuildBackend.UV,
+            build_backend="uv_build",
             create_dist_zip_file=False,
         )
         assert config.project_name_slug_underscore == "my_test_project"
@@ -198,7 +181,7 @@ class TestBuildConfig:
             project_source_subdir_rel_path=Path("src"),
             python_version="3.13.0",
             python_architecture=PythonArchitecture.AMD64,
-            build_backend=BuildBackend.UV,
+            build_backend="uv_build",
             create_dist_zip_file=False,
         )
         assert config.project_name_slug_dash == "my-test-project"
@@ -213,7 +196,7 @@ class TestBuildConfig:
             project_source_subdir_rel_path=Path("src"),
             python_version="3.13.0",
             python_architecture=PythonArchitecture.AMD64,
-            build_backend=BuildBackend.UV,
+            build_backend="uv_build",
             create_dist_zip_file=False,
         )
         assert config.dist_name == "my-app-2.1.0-amd64"
@@ -228,7 +211,7 @@ class TestBuildConfig:
             project_source_subdir_rel_path=Path("src"),
             python_version="3.11.0",
             python_architecture=PythonArchitecture.WIN32,
-            build_backend=BuildBackend.UV,
+            build_backend="uv_build",
             create_dist_zip_file=False,
         )
         assert config.dist_name == "test-app-1.0.0-win32"
@@ -243,7 +226,7 @@ class TestBuildConfig:
             project_source_subdir_rel_path=Path("src"),
             python_version="3.11.0",
             python_architecture=PythonArchitecture.AMD64,
-            build_backend=BuildBackend.UV,
+            build_backend="uv_build",
             create_dist_zip_file=False,
         )
         assert config.main_file_rel_path is None
@@ -261,7 +244,7 @@ class TestBuildConfig:
             icon_file_rel_path=Path("icon.ico"),
             python_version="3.11.0",
             python_architecture=PythonArchitecture.AMD64,
-            build_backend=BuildBackend.UV,
+            build_backend="uv_build",
             create_dist_zip_file=False,
         )
         # Field validators only check if paths are relative, not if they exist
@@ -278,7 +261,7 @@ class TestBuildConfig:
             project_source_subdir_rel_path=Path("src"),
             python_version="3.11.0",
             python_architecture=PythonArchitecture.AMD64,
-            build_backend=BuildBackend.UV,
+            build_backend="uv_build",
             create_dist_zip_file=False,
         )
         assert config.install_as_package is True
@@ -293,10 +276,40 @@ class TestBuildConfig:
             project_source_subdir_rel_path=Path("src"),
             python_version="3.11.0",
             python_architecture=PythonArchitecture.AMD64,
-            build_backend=BuildBackend.UV,
+            build_backend="uv_build",
             create_dist_zip_file=False,
         )
         assert config.show_console_window is False
+
+    def test_main_module_is_last_component_of_source_subdir(self) -> None:
+        """Test that main_module is the package directory named by the subdir."""
+        config = BuildConfig(
+            build_hash="test123",
+            project_dir_abs_path=Path("."),
+            project_name="My App",
+            project_version="1.0.0",
+            project_source_subdir_rel_path=Path("src/simple_rss"),
+            python_version="3.13.0",
+            python_architecture=PythonArchitecture.AMD64,
+            build_backend="uv_build",
+            create_dist_zip_file=False,
+        )
+        assert config.main_module == "simple_rss"
+
+    def test_main_module_falls_back_to_project_slug_for_root_subdir(self) -> None:
+        """Test that main_module is the project slug when the subdir is '.'."""
+        config = BuildConfig(
+            build_hash="test123",
+            project_dir_abs_path=Path("."),
+            project_name="My App",
+            project_version="1.0.0",
+            project_source_subdir_rel_path=Path("."),
+            python_version="3.13.0",
+            python_architecture=PythonArchitecture.AMD64,
+            build_backend="uv_build",
+            create_dist_zip_file=False,
+        )
+        assert config.main_module == "my_app"
 
 
 class TestBuildConfigFromPyprojectToml:
@@ -310,7 +323,7 @@ class TestBuildConfigFromPyprojectToml:
         assert config.project_version == "0.1.0"
         assert config.python_version == "3.13.0"
         assert config.python_architecture == PythonArchitecture.AMD64
-        assert config.build_backend == BuildBackend.UV
+        assert config.build_backend == "uv_build"
         assert config.create_dist_zip_file is True
         assert config.show_console_window is False
         assert config.install_as_package is True
@@ -389,11 +402,13 @@ class TestBuildConfigFromPyprojectToml:
         p1 = tmp_path / "proj1" / "pyproject.toml"
         p1.parent.mkdir()
         (p1.parent / "src").mkdir()
+        (p1.parent / "src" / "__main__.py").write_text("")
         p1.write_bytes(tomli_w.dumps(data1).encode())
 
         p2 = tmp_path / "proj2" / "pyproject.toml"
         p2.parent.mkdir()
         (p2.parent / "src").mkdir()
+        (p2.parent / "src" / "__main__.py").write_text("")
         p2.write_bytes(tomli_w.dumps(data2).encode())
 
         config1 = BuildConfig.from_pyproject_toml(p1)
@@ -673,8 +688,8 @@ class TestBuildConfigFromPyprojectToml:
         ):
             BuildConfig.from_pyproject_toml(pyproject_path)
 
-    def test_invalid_build_backend(self, tmp_path: Path) -> None:
-        """Test that ValueError is raised for invalid build-backend."""
+    def test_from_pyproject_accepts_any_build_backend(self, tmp_path: Path) -> None:
+        """Test that any PEP 517 build backend is accepted and kept as a string."""
         import tomli_w
 
         data = {
@@ -684,8 +699,8 @@ class TestBuildConfigFromPyprojectToml:
                 "dependencies": [],
             },
             "build-system": {
-                "requires": ["uv_build"],
-                "build-backend": "invalid_backend",
+                "requires": ["setuptools>=68"],
+                "build-backend": "setuptools.build_meta",
             },
             "tool": {
                 "pyretort": {
@@ -703,11 +718,108 @@ class TestBuildConfigFromPyprojectToml:
 
         source_dir = tmp_path / "src"
         source_dir.mkdir(parents=True, exist_ok=True)
+        (source_dir / "__main__.py").write_text("")
+
+        config = BuildConfig.from_pyproject_toml(pyproject_path)
+
+        assert config.build_backend == "setuptools.build_meta"
+
+    def test_from_pyproject_rejects_empty_build_backend(self, tmp_path: Path) -> None:
+        """Test that ValueError is raised for an empty build-backend string."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dependencies": [],
+            },
+            "build-system": {
+                "requires": ["uv_build"],
+                "build-backend": "",
+            },
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": True,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        source_dir = tmp_path / "src"
+        source_dir.mkdir(parents=True, exist_ok=True)
+        (source_dir / "__main__.py").write_text("")
 
         with pytest.raises(
-            ValueError, match="Invalid build-backend: 'invalid_backend'"
+            ValueError,
+            match="'build-backend' in \\[build-system\\] must be a non-empty string",
         ):
             BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_from_pyproject_rejects_package_without_dunder_main(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that a package directory without __main__.py is rejected."""
+        import tomli_w
+
+        data = {
+            "project": {"name": "my-app", "version": "0.1.0", "dependencies": []},
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src/my_app",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": True,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        package_dir = tmp_path / "src" / "my_app"
+        package_dir.mkdir(parents=True)
+        (package_dir / "__init__.py").write_text("")
+
+        with pytest.raises(ValueError, match="__main__.py") as exc_info:
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+        assert "python -m my_app" in str(exc_info.value)
+        assert str(package_dir / "__main__.py") in str(exc_info.value)
+
+    def test_from_pyproject_accepts_single_module_in_root(self, tmp_path: Path) -> None:
+        """Test that a root subdir with '<main_module>.py' passes validation."""
+        import tomli_w
+
+        data = {
+            "project": {"name": "mytool", "version": "0.1.0", "dependencies": []},
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": ".",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": True,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+        (tmp_path / "mytool.py").write_text("print('hello')")
+
+        config = BuildConfig.from_pyproject_toml(pyproject_path)
+
+        assert config.main_module == "mytool"
 
     def test_source_subdir_does_not_exist(self, tmp_path: Path) -> None:
         """Test that ValueError is raised when source subdirectory doesn't exist."""
@@ -1021,7 +1133,41 @@ class TestBuildConfigFromPyprojectToml:
             BuildConfig.from_pyproject_toml(pyproject_path)
 
     def test_valid_boolean_fields(self, tmp_path: Path) -> None:
-        """Test that valid boolean fields are accepted."""
+        """Test that non-default boolean values are accepted."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dependencies": [],
+            },
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": True,
+                    "show_console_window": True,
+                    "create_dist_zip_file": False,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        source_dir = tmp_path / "src"
+        source_dir.mkdir(parents=True, exist_ok=True)
+        (source_dir / "__main__.py").write_text("")
+
+        config = BuildConfig.from_pyproject_toml(pyproject_path)
+        assert config.install_as_package is True
+        assert config.show_console_window is True
+        assert config.create_dist_zip_file is False
+
+    def test_from_pyproject_rejects_standalone_mode(self, tmp_path: Path) -> None:
+        """Test that install_as_package = false is refused until task 12 lands."""
         import tomli_w
 
         data = {
@@ -1037,8 +1183,8 @@ class TestBuildConfigFromPyprojectToml:
                     "python_version": "3.13.0",
                     "python_architecture": "amd64",
                     "install_as_package": False,
-                    "show_console_window": True,
-                    "create_dist_zip_file": False,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
                 }
             },
         }
@@ -1048,7 +1194,8 @@ class TestBuildConfigFromPyprojectToml:
         source_dir = tmp_path / "src"
         source_dir.mkdir(parents=True, exist_ok=True)
 
-        config = BuildConfig.from_pyproject_toml(pyproject_path)
-        assert config.install_as_package is False
-        assert config.show_console_window is True
-        assert config.create_dist_zip_file is False
+        with pytest.raises(
+            ValueError,
+            match="install_as_package = false \\(standalone mode\\) is not supported yet",
+        ):
+            BuildConfig.from_pyproject_toml(pyproject_path)

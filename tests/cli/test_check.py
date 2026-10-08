@@ -36,6 +36,7 @@ class TestCheckCommand:
         }
         pyproject.write_bytes(tomli_w.dumps(data).encode())
         (tmp_path / "src").mkdir()
+        (tmp_path / "src" / "__main__.py").write_text("")
 
         result = runner.invoke(app, ["check", "-p", str(pyproject)])
 
@@ -73,6 +74,7 @@ class TestCheckCommand:
         }
         pyproject.write_bytes(tomli_w.dumps(data).encode())
         (tmp_path / "src").mkdir()
+        (tmp_path / "src" / "__main__.py").write_text("")
 
         result = runner.invoke(app, ["check", "-p", str(pyproject)])
 
@@ -118,6 +120,7 @@ class TestCheckCommand:
         }
         pyproject.write_bytes(tomli_w.dumps(data).encode())
         (tmp_path / "src").mkdir()
+        (tmp_path / "src" / "__main__.py").write_text("")
 
         result = runner.invoke(app, ["--quiet", "check", "-p", str(pyproject)])
 
@@ -129,6 +132,41 @@ class TestCheckCommand:
         result = runner.invoke(app, ["check"])
 
         assert result.exit_code != 0
+
+    def test_check_rejects_standalone_mode(self, tmp_path: Path) -> None:
+        """Test that install_as_package = false fails with a clear message."""
+        pyproject = tmp_path / "pyproject.toml"
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dependencies": [],
+            },
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src",
+                    "main_file": "main.py",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": False,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject.write_bytes(tomli_w.dumps(data).encode())
+        (tmp_path / "src").mkdir()
+        (tmp_path / "src" / "main.py").write_text("print('hello')")
+
+        result = runner.invoke(app, ["check", "-p", str(pyproject)])
+
+        assert result.exit_code == 1
+        assert "not supported yet" in result.output
+        assert "Traceback" not in result.output
+        assert not (tmp_path / "build").exists()
+        assert not (tmp_path / "downloads").exists()
+        assert not (tmp_path / "dist").exists()
 
 
 class TestCheckCommandEdgeCases:

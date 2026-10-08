@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import tomllib
+from dataclasses import dataclass
 from enum import StrEnum
 from hashlib import sha256
 from pathlib import Path
@@ -18,19 +19,45 @@ class PythonArchitecture(StrEnum):
     ARM64 = "arm64"
 
 
-class BuildBackend(StrEnum):
-    """All possible values for [build-system].build-backend in pyproject.toml"""
+@dataclass(frozen=True)
+class LauncherEntryPoint:
+    """What the generated launcher runs: ``python -m <module>``.
 
-    # setuptools
-    # TODO: implement setuptools support
-    # SETUPTOOLS = "setuptools.build_meta"
+    ``dunder_main`` is the ``__main__.py`` that makes the module runnable;
+    ``single_module`` is the ``<module>.py`` alternative, accepted only when
+    the sources live in the project root.
+    """
 
-    # hatchling
-    # tODO: implement hatchling support
-    HATCHLING = "hatchling.build"
+    module: str
+    dunder_main: Path
+    single_module: Path | None = None
 
-    # uv
-    UV = "uv_build"
+    def exists(self) -> bool:
+        """Return True if ``python -m <module>`` would find an entry point."""
+        if self.dunder_main.is_file():
+            return True
+        return self.single_module is not None and self.single_module.is_file()
+
+
+def launcher_entry_point(
+    project_dir: Path, source_subdir: Path, project_name: str
+) -> LauncherEntryPoint:
+    """Derive the launcher entry point from the source layout.
+
+    A source subdirectory other than ``.`` names the package directory
+    (``src/simple_rss`` -> ``python -m simple_rss``); for sources in the project
+    root the module is the underscore slug of the project name.
+    """
+    if source_subdir != Path("."):
+        module = source_subdir.name
+        return LauncherEntryPoint(module, project_dir / source_subdir / "__main__.py")
+
+    module = slugify(project_name, separator="_")
+    return LauncherEntryPoint(
+        module,
+        project_dir / module / "__main__.py",
+        single_module=project_dir / f"{module}.py",
+    )
 
 
 class BuildConfig(BaseModel):
@@ -62,8 +89,9 @@ class BuildConfig(BaseModel):
     # python architecture to use for the build
     python_architecture: PythonArchitecture
 
-    # build backend to use for building the project
-    build_backend: BuildBackend
+    # PEP 517 build backend declared in [build-system]; informational only,
+    # the build runs 'uv pip install', which handles any backend
+    build_backend: str
 
     # icon file path relative to project_dir (optional)
     icon_file_rel_path: Path | None = None
@@ -102,23 +130,6 @@ class BuildConfig(BaseModel):
             valid = [a.value for a in PythonArchitecture]
             raise ValueError(
                 f"Invalid python_architecture: '{v}'. Valid values: {', '.join(valid)}"
-            ) from None
-
-    @field_validator("build_backend", mode="before")
-    @classmethod
-    def validate_build_backend(cls, v: str) -> BuildBackend:
-        """Validate build_backend value."""
-        if v is None:
-            raise ValueError(
-                "build-backend is required in [build-system] section. "
-                f"Valid values: {', '.join(b.value for b in BuildBackend)}"
-            )
-        try:
-            return BuildBackend(v)
-        except ValueError:
-            valid = [b.value for b in BuildBackend]
-            raise ValueError(
-                f"Invalid build-backend: '{v}'. Valid values: {', '.join(valid)}"
             ) from None
 
     @field_validator("project_source_subdir_rel_path")
@@ -180,6 +191,16 @@ class BuildConfig(BaseModel):
     def dist_name(self) -> str:
         """Distribution name: 'my-app-0.1.0-amd64'."""
         return f"{self.project_name_slug_dash}-{self.project_version}-{self.python_architecture}"
+
+    @computed_field  # type: ignore[prop-decorator]  # mypy: unsupported on @property
+    @property
+    def main_module(self) -> str:
+        """Module the launcher runs with 'python -m': 'src/simple_rss' -> 'simple_rss'."""
+        return launcher_entry_point(
+            self.project_dir_abs_path,
+            self.project_source_subdir_rel_path,
+            self.project_name,
+        ).module
 
     @classmethod
     def from_pyproject_toml(cls, pyproject_path: Path | str) -> BuildConfig:
@@ -297,22 +318,24 @@ class BuildConfig(BaseModel):
             if not full_icon_path.is_file():
                 raise ValueError(f"Icon path is not a file: {full_icon_path}")
 
-        # Validate build backend
-        build_backend_str = build_system.get("build-backend")
-        try:
-            build_backend = BuildBackend(build_backend_str)
-        except ValueError as e:
-            valid = [b.value for b in BuildBackend]
+        # Validate build backend: any PEP 517 backend works with 'uv pip install',
+        # but an empty value would make uv fall back to legacy setuptools
+        build_backend = build_system.get("build-backend")
+        if not isinstance(build_backend, str) or not build_backend.strip():
             raise ValueError(
-                f"Invalid build-backend: '{build_backend_str}'. "
-                f"Valid values: {', '.join(valid)}"
-            ) from e
+                "'build-backend' in [build-system] must be a non-empty string"
+            )
 
         # Validate boolean fields
         install_as_package = tool_pyretort.get("install_as_package")
         if install_as_package is not None and not isinstance(install_as_package, bool):
             raise ValueError(
                 f"'install_as_package' must be a boolean, got {type(install_as_package).__name__}"
+            )
+        if install_as_package is False:
+            raise ValueError(
+                "install_as_package = false (standalone mode) is not supported yet; "
+                "set it to true or see docs/tasks/12-standalone-mode.md"
             )
 
         show_console_window = tool_pyretort.get("show_console_window")
@@ -327,6 +350,15 @@ class BuildConfig(BaseModel):
         if not isinstance(create_dist_zip_file, bool):
             raise ValueError(
                 f"'create_dist_zip_file' must be a boolean, got {type(create_dist_zip_file).__name__}"
+            )
+
+        # Validate the entry point: the launcher runs 'python -m <module>'
+        entry_point = launcher_entry_point(project_dir, source_subdir, project["name"])
+        if not entry_point.exists():
+            raise ValueError(
+                f"Package mode requires '{entry_point.dunder_main}': the launcher "
+                f"runs 'python -m {entry_point.module}'. Point project_source_subdir "
+                "at the package directory or add __main__.py."
             )
 
         # Extract configuration with defaults
