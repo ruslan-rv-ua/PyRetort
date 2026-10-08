@@ -3,37 +3,13 @@
 from pathlib import Path
 
 import pytest
-import tomli_w
 
 from pyretort.types import (
     MIN_PYTHON_VERSION,
     BuildConfig,
     PythonArchitecture,
 )
-
-
-def write_standalone_pyproject(
-    project_dir: Path, name: object = "test-app", version: object = "0.1.0"
-) -> Path:
-    """Write a standalone project with main.py and return its pyproject.toml."""
-    data = {
-        "project": {"name": name, "version": version, "dependencies": []},
-        "tool": {
-            "pyretort": {
-                "project_source_subdir": ".",
-                "main_file": "main.py",
-                "python_version": "3.13.9",
-                "python_architecture": "amd64",
-                "install_as_package": False,
-                "show_console_window": False,
-                "create_dist_zip_file": True,
-            }
-        },
-    }
-    pyproject_path = project_dir / "pyproject.toml"
-    pyproject_path.write_bytes(tomli_w.dumps(data).encode())
-    (project_dir / "main.py").write_text("print('hello')")
-    return pyproject_path
+from tests.conftest import write_standalone_pyproject
 
 
 class TestPythonArchitecture:

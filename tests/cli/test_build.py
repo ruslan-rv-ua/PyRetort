@@ -12,7 +12,11 @@ from typer.testing import CliRunner
 
 from pyretort.builder.errors import BuildError
 from pyretort.cli import app
-from tests.conftest import BuildExternals, failing_pydist_manager
+from tests.conftest import (
+    BuildExternals,
+    failing_pydist_manager,
+    write_standalone_pyproject,
+)
 
 runner = CliRunner()
 
@@ -114,27 +118,7 @@ class TestBuildCommandOutput:
         self, tmp_path: Path
     ) -> None:
         """Test that a project name uv rejects stops build before it touches disk."""
-        pyproject = tmp_path / "pyproject.toml"
-        data = {
-            "project": {
-                "name": "System Monitor",
-                "version": "0.1.0",
-                "dependencies": [],
-            },
-            "tool": {
-                "pyretort": {
-                    "project_source_subdir": ".",
-                    "main_file": "main.py",
-                    "python_version": "3.13.0",
-                    "python_architecture": "amd64",
-                    "install_as_package": False,
-                    "show_console_window": True,
-                    "create_dist_zip_file": True,
-                }
-            },
-        }
-        pyproject.write_bytes(tomli_w.dumps(data).encode())
-        (tmp_path / "main.py").write_text("print('hello')")
+        pyproject = write_standalone_pyproject(tmp_path, name="System Monitor")
 
         result = runner.invoke(app, ["build", "-p", str(pyproject)])
 
