@@ -311,6 +311,14 @@ class TestInitCommandExistingSection:
         assert "project_source_subdir" in pyretort_config
         assert updated_data["project"]["name"] == "test-app"
 
+    def test_init_help_shows_the_section_name(self) -> None:
+        """Test that Rich markup does not swallow [tool.pyretort] in the --force help."""
+        # Wide enough that Rich does not wrap the description mid-sentence.
+        result = runner.invoke(app, ["init", "--help"], env={"COLUMNS": "120"})
+
+        assert result.exit_code == 0, result.output
+        assert "Overwrite an existing [tool.pyretort] section." in result.output
+
 
 class TestInitCommandEntryPoint:
     """Tests for the __main__.py warning and the explanatory comments."""

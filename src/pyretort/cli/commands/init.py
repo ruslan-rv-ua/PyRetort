@@ -25,7 +25,7 @@ def init_command(
     force: bool = typer.Option(
         False,
         "--force",
-        help="Overwrite an existing [tool.pyretort] section.",
+        help="Overwrite an existing \\[tool.pyretort] section.",
     ),
 ) -> None:
     """Initialize a PyRetort configuration file for a Python project."""
