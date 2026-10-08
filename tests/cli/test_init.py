@@ -1,5 +1,8 @@
 """Tests for pyretort.cli.commands.init command."""
 
+from __future__ import annotations
+
+import stat
 import tomllib
 from pathlib import Path
 
@@ -127,6 +130,30 @@ class TestInitCommand:
 
         assert result.exit_code == 1
         assert f"Configuration file not found: {nonexistent}" in result.stderr
+
+    def test_init_fails_clearly_when_pyproject_is_read_only(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that a pyproject.toml that cannot be written gives a message, not a traceback."""
+        pyproject = tmp_path / "pyproject.toml"
+        data = {
+            "project": {"name": "test-app", "version": "0.1.0"},
+            "build-system": {
+                "requires": ["hatchling"],
+                "build-backend": "hatchling.build",
+            },
+        }
+        pyproject.write_bytes(tomli_w.dumps(data).encode())
+        pyproject.chmod(stat.S_IREAD)
+
+        try:
+            result = runner.invoke(app, ["init", "-p", str(pyproject)])
+        finally:
+            pyproject.chmod(stat.S_IREAD | stat.S_IWRITE)
+
+        assert result.exit_code == 1
+        assert f"Cannot write {pyproject}" in result.stderr
+        assert "Traceback" not in result.output
 
     def test_init_defaults_to_pyproject_in_current_directory(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch

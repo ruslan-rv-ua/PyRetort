@@ -30,13 +30,13 @@ def init_command(
 ) -> None:
     """Initialize a PyRetort configuration file for a Python project."""
 
-    pyproject_toml_path = resolve_pyproject(pyproject_toml)
-    if not pyproject_toml_path.is_file():
-        echo(ctx, f"Configuration file not found: {pyproject_toml_path}", err=True)
+    pyproject_toml = resolve_pyproject(pyproject_toml)
+    if not pyproject_toml.is_file():
+        echo(ctx, f"Configuration file not found: {pyproject_toml}", err=True)
         raise typer.Exit(1)
-    project_path = pyproject_toml_path.parent
+    project_path = pyproject_toml.parent
 
-    pyproject_data = tomlkit.parse(pyproject_toml_path.read_text(encoding="utf-8"))
+    pyproject_data = tomlkit.parse(pyproject_toml.read_text(encoding="utf-8"))
     if _has_pyretort_section(pyproject_data) and not force:
         echo(
             ctx,
@@ -50,9 +50,13 @@ def init_command(
     _set_pyretort_section(
         pyproject_data, _build_pyretort_section(project_path, source_subdir)
     )
-    pyproject_toml_path.write_text(tomlkit.dumps(pyproject_data), encoding="utf-8")
+    try:
+        pyproject_toml.write_text(tomlkit.dumps(pyproject_data), encoding="utf-8")
+    except OSError as e:
+        echo(ctx, f"Cannot write {pyproject_toml}: {e}", err=True)
+        raise typer.Exit(1) from None
 
-    echo(ctx, f"pyproject.toml updated successfully at: {pyproject_toml_path}")
+    echo(ctx, f"pyproject.toml updated successfully at: {pyproject_toml}")
     echo(ctx, "Next steps:")
     echo(
         ctx,
