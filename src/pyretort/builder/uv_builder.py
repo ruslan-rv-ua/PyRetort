@@ -17,7 +17,7 @@ class UVBuilder(BaseBuilder):
         """Build the distribution; raise BuildError for every expected failure."""
         if shutil.which("uv") is None:
             raise BuildError(f"uv was not found in PATH. Install uv: {UV_INSTALL_URL}")
-        self._create_directories()
+        self.prepare_directories()
         if self.config.install_as_package:
             self._build_as_package()
         else:

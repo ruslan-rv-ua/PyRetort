@@ -105,6 +105,35 @@ class TestUVBuilderLauncher:
 
 
 @pytest.mark.usefixtures("externals")
+class TestUVBuilderDirectories:
+    """Tests for the directories UVBuilder prepares before building."""
+
+    def test_builder_init_does_not_touch_filesystem(self, tmp_path: Path) -> None:
+        """Test that constructing a builder creates no directories."""
+        config = make_config(tmp_path, "src/my_pkg")
+
+        UVBuilder(config)
+
+        assert not (tmp_path / "build").exists()
+        assert not (tmp_path / "downloads").exists()
+        assert not (tmp_path / "dist").exists()
+
+    @pytest.mark.usefixtures("generate_exe")
+    def test_build_recreates_app_dir_from_scratch(self, tmp_path: Path) -> None:
+        """Test that leftovers of a previous build are removed from build/<dist_name>."""
+        config = make_config(tmp_path, "src/my_pkg")
+        app_dir = tmp_path / "build" / "my-app-0.1.0-amd64"
+        app_dir.mkdir(parents=True)
+        stale_file = app_dir / "stale.txt"
+        stale_file.write_text("left over from an earlier build")
+
+        UVBuilder(config).build()
+
+        assert app_dir.is_dir()
+        assert not stale_file.exists()
+
+
+@pytest.mark.usefixtures("externals")
 class TestUVBuilderFailures:
     """Tests for the build failures UVBuilder reports as BuildError."""
 
