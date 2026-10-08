@@ -10,6 +10,8 @@ from packaging.version import InvalidVersion, Version
 from pydantic import BaseModel, computed_field, field_validator
 from slugify import slugify
 
+from pyretort.constants import INSTALL_AS_PACKAGE_DEFAULT, SHOW_CONSOLE_DEFAULT
+
 MIN_PYTHON_VERSION = "3.11"
 
 
@@ -79,7 +81,7 @@ class BuildConfig(BaseModel):
     # main entry file relative to project_source_subdir_rel_path (optional)
     main_file_rel_path: Path | None = None
 
-    install_as_package: bool = True
+    install_as_package: bool = INSTALL_AS_PACKAGE_DEFAULT
 
     # python version to use for the build
     # format: "major.minor.micro" e.g. "3.11.4"
@@ -97,7 +99,7 @@ class BuildConfig(BaseModel):
     icon_file_rel_path: Path | None = None
 
     # show or hide console window when running the built application
-    show_console_window: bool = False
+    show_console_window: bool = SHOW_CONSOLE_DEFAULT
 
     create_dist_zip_file: bool
 
@@ -371,7 +373,7 @@ class BuildConfig(BaseModel):
                 "at the package directory or add __main__.py."
             )
 
-        # Extract configuration with defaults
+        # Extract configuration; absent optional booleans keep the model defaults
         config_data = {
             "build_hash": build_hash,
             "project_dir_abs_path": project_dir,
@@ -379,13 +381,15 @@ class BuildConfig(BaseModel):
             "project_version": project.get("version"),
             "project_source_subdir_rel_path": source_subdir,
             "main_file_rel_path": main_file_rel_path,
-            "install_as_package": install_as_package,
             "python_version": python_version,
             "python_architecture": python_architecture,
             "build_backend": build_backend,
             "icon_file_rel_path": icon_file_rel_path,
-            "show_console_window": show_console_window,
             "create_dist_zip_file": create_dist_zip_file,
         }
+        if install_as_package is not None:
+            config_data["install_as_package"] = install_as_package
+        if show_console_window is not None:
+            config_data["show_console_window"] = show_console_window
 
         return cls(**config_data)

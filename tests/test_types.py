@@ -1200,6 +1200,45 @@ class TestBuildConfigFromPyprojectToml:
         assert config.show_console_window is True
         assert config.create_dist_zip_file is False
 
+    @pytest.mark.parametrize(
+        ("missing_key", "expected"),
+        [("install_as_package", True), ("show_console_window", False)],
+    )
+    def test_from_pyproject_uses_defaults_for_missing_optional_booleans(
+        self, tmp_path: Path, missing_key: str, expected: bool
+    ) -> None:
+        """Test that an absent optional boolean takes its default value."""
+        import tomli_w
+
+        pyretort_section = {
+            "project_source_subdir": "src",
+            "python_version": "3.13.0",
+            "python_architecture": "amd64",
+            "install_as_package": True,
+            "show_console_window": False,
+            "create_dist_zip_file": True,
+        }
+        del pyretort_section[missing_key]
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dependencies": [],
+            },
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+            "tool": {"pyretort": pyretort_section},
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        source_dir = tmp_path / "src"
+        source_dir.mkdir(parents=True, exist_ok=True)
+        (source_dir / "__main__.py").write_text("")
+
+        config = BuildConfig.from_pyproject_toml(pyproject_path)
+
+        assert getattr(config, missing_key) is expected
+
     def test_from_pyproject_rejects_standalone_mode(self, tmp_path: Path) -> None:
         """Test that install_as_package = false is refused until task 12 lands."""
         import tomli_w
