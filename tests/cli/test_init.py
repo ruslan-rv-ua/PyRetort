@@ -180,8 +180,9 @@ class TestInitCommand:
         }
         pyproject.write_bytes(tomli_w.dumps(data).encode())
 
-        runner.invoke(app, ["init", "-p", str(pyproject)])
+        result = runner.invoke(app, ["init", "-p", str(pyproject)])
 
+        assert result.exit_code == 0
         assert "amd64, win32, arm64" in pyproject.read_text(encoding="utf-8")
 
 
