@@ -1133,7 +1133,41 @@ class TestBuildConfigFromPyprojectToml:
             BuildConfig.from_pyproject_toml(pyproject_path)
 
     def test_valid_boolean_fields(self, tmp_path: Path) -> None:
-        """Test that valid boolean fields are accepted."""
+        """Test that non-default boolean values are accepted."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dependencies": [],
+            },
+            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": True,
+                    "show_console_window": True,
+                    "create_dist_zip_file": False,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        source_dir = tmp_path / "src"
+        source_dir.mkdir(parents=True, exist_ok=True)
+        (source_dir / "__main__.py").write_text("")
+
+        config = BuildConfig.from_pyproject_toml(pyproject_path)
+        assert config.install_as_package is True
+        assert config.show_console_window is True
+        assert config.create_dist_zip_file is False
+
+    def test_from_pyproject_rejects_standalone_mode(self, tmp_path: Path) -> None:
+        """Test that install_as_package = false is refused until task 12 lands."""
         import tomli_w
 
         data = {
@@ -1149,8 +1183,8 @@ class TestBuildConfigFromPyprojectToml:
                     "python_version": "3.13.0",
                     "python_architecture": "amd64",
                     "install_as_package": False,
-                    "show_console_window": True,
-                    "create_dist_zip_file": False,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
                 }
             },
         }
@@ -1160,7 +1194,8 @@ class TestBuildConfigFromPyprojectToml:
         source_dir = tmp_path / "src"
         source_dir.mkdir(parents=True, exist_ok=True)
 
-        config = BuildConfig.from_pyproject_toml(pyproject_path)
-        assert config.install_as_package is False
-        assert config.show_console_window is True
-        assert config.create_dist_zip_file is False
+        with pytest.raises(
+            ValueError,
+            match="install_as_package = false \\(standalone mode\\) is not supported yet",
+        ):
+            BuildConfig.from_pyproject_toml(pyproject_path)

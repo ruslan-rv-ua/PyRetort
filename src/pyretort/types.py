@@ -320,6 +320,11 @@ class BuildConfig(BaseModel):
             raise ValueError(
                 f"'install_as_package' must be a boolean, got {type(install_as_package).__name__}"
             )
+        if install_as_package is False:
+            raise ValueError(
+                "install_as_package = false (standalone mode) is not supported yet; "
+                "set it to true or see docs/tasks/12-standalone-mode.md"
+            )
 
         show_console_window = tool_pyretort.get("show_console_window")
         if show_console_window is not None and not isinstance(
@@ -336,15 +341,14 @@ class BuildConfig(BaseModel):
             )
 
         # Validate the entry point: the launcher runs 'python -m <main_module>'
-        if install_as_package is not False:
-            main_module = derive_main_module(source_subdir, project["name"])
-            dunder_main = missing_dunder_main(project_dir, source_subdir, main_module)
-            if dunder_main is not None:
-                raise ValueError(
-                    f"Package mode requires '{dunder_main}': the launcher runs "
-                    f"'python -m {main_module}'. Point project_source_subdir at the "
-                    "package directory or add __main__.py."
-                )
+        main_module = derive_main_module(source_subdir, project["name"])
+        dunder_main = missing_dunder_main(project_dir, source_subdir, main_module)
+        if dunder_main is not None:
+            raise ValueError(
+                f"Package mode requires '{dunder_main}': the launcher runs "
+                f"'python -m {main_module}'. Point project_source_subdir at the "
+                "package directory or add __main__.py."
+            )
 
         # Extract configuration with defaults
         config_data = {
