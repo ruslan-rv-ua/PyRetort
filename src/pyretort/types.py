@@ -8,12 +8,17 @@ from typing import Any
 
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.version import InvalidVersion, Version
-from pydantic import BaseModel, computed_field, field_validator
+from pydantic import BaseModel, computed_field, field_validator, model_validator
 from slugify import slugify
 
 from pyretort.constants import INSTALL_AS_PACKAGE_DEFAULT, SHOW_CONSOLE_DEFAULT
 
 MIN_PYTHON_VERSION = "3.11"
+
+STANDALONE_MAIN_FILE_REQUIRED = (
+    "Standalone mode (install_as_package = false) requires 'main_file' "
+    "in [tool.pyretort]"
+)
 
 
 class PythonArchitecture(StrEnum):
@@ -206,6 +211,13 @@ class BuildConfig(BaseModel):
 
         return v
 
+    @model_validator(mode="after")
+    def validate_main_file_in_standalone_mode(self) -> BuildConfig:
+        """Require the main file in standalone mode: the launcher runs it."""
+        if not self.install_as_package and self.main_file_rel_path is None:
+            raise ValueError(STANDALONE_MAIN_FILE_REQUIRED)
+        return self
+
     @computed_field  # type: ignore[prop-decorator]  # mypy: unsupported on @property
     @property
     def python_version_short(self) -> str:
@@ -345,10 +357,7 @@ class BuildConfig(BaseModel):
         # and must exist, while package mode ignores it
         main_file_rel_path = None
         if standalone and "main_file" not in tool_pyretort:
-            raise ValueError(
-                "Standalone mode (install_as_package = false) requires 'main_file' "
-                "in [tool.pyretort]"
-            )
+            raise ValueError(STANDALONE_MAIN_FILE_REQUIRED)
         if "main_file" in tool_pyretort:
             main_file_rel_path = Path(tool_pyretort["main_file"])
             if main_file_rel_path.is_absolute():

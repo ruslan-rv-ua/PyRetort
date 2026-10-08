@@ -266,6 +266,26 @@ class TestBuildConfig:
         )
         assert config.show_console_window is False
 
+    def test_standalone_mode_requires_main_file(self) -> None:
+        """Test that install_as_package=False without a main file is rejected."""
+        with pytest.raises(
+            ValueError,
+            match=(
+                "Standalone mode \\(install_as_package = false\\) requires "
+                "'main_file' in \\[tool.pyretort\\]"
+            ),
+        ):
+            BuildConfig(
+                project_dir_abs_path=Path("."),
+                project_name="test",
+                project_version="1.0.0",
+                project_source_subdir_rel_path=Path("."),
+                install_as_package=False,
+                python_version="3.13.0",
+                python_architecture=PythonArchitecture.AMD64,
+                create_dist_zip_file=False,
+            )
+
     def test_main_module_is_last_component_of_source_subdir(self) -> None:
         """Test that main_module is the package directory named by the subdir."""
         config = BuildConfig(

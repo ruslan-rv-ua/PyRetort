@@ -86,11 +86,7 @@ class UVBuilder(BaseBuilder):
 
     def _build_as_standalone(self) -> None:
         main_file = self.config.main_file_rel_path
-        if main_file is None:
-            raise BuildError(
-                "Standalone mode (install_as_package = false) requires 'main_file' "
-                "in [tool.pyretort]"
-            )
+        assert main_file is not None, "BuildConfig requires it in standalone mode"
         pydist_manager = self._install_embedded_python()
         # A ._pth file puts Python into isolated mode, which keeps the script's
         # folder off sys.path; list it, as sys.path[0] would be otherwise.
