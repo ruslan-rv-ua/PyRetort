@@ -5,6 +5,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock
+from zipfile import ZipFile
 
 import pytest
 
@@ -20,6 +21,7 @@ def make_config(
     icon_file: str | None = None,
     python_version: str = "3.13.0",
     architecture: PythonArchitecture = PythonArchitecture.AMD64,
+    create_dist_zip_file: bool = False,
 ) -> BuildConfig:
     """Create a package-mode BuildConfig rooted at project_dir."""
     return BuildConfig(
@@ -32,7 +34,7 @@ def make_config(
         python_architecture=architecture,
         build_backend="uv_build",
         icon_file_rel_path=None if icon_file is None else Path(icon_file),
-        create_dist_zip_file=False,
+        create_dist_zip_file=create_dist_zip_file,
     )
 
 
@@ -127,6 +129,60 @@ class TestUVBuilderDirectories:
 
         assert app_dir.is_dir()
         assert not stale_file.exists()
+
+
+@pytest.mark.usefixtures("externals", "generate_exe")
+class TestUVBuilderArchive:
+    """Tests for the ZIP archive of the build that UVBuilder writes to dist/."""
+
+    def test_build_creates_zip_with_dist_name_prefix(self, tmp_path: Path) -> None:
+        """Test that the archive unpacks into one <dist_name>/ with exe and Python."""
+        config = make_config(tmp_path, "src/my_pkg", create_dist_zip_file=True)
+
+        UVBuilder(config).build()
+
+        archive = tmp_path / "dist" / "my-app-0.1.0-amd64.zip"
+        assert archive.is_file()
+        with ZipFile(archive) as zf:
+            names = zf.namelist()
+        assert all(name.startswith("my-app-0.1.0-amd64/") for name in names)
+        assert "my-app-0.1.0-amd64/my-app.exe" in names
+        assert "my-app-0.1.0-amd64/my-app/python.exe" in names
+
+    def test_build_skips_zip_when_disabled(self, tmp_path: Path) -> None:
+        """Test that create_dist_zip_file = false puts no archive into dist/."""
+        config = make_config(tmp_path, "src/my_pkg", create_dist_zip_file=False)
+
+        result = UVBuilder(config).build()
+
+        assert list((tmp_path / "dist").glob("*.zip")) == []
+        assert result.archive is None
+
+    def test_build_overwrites_stale_zip(self, tmp_path: Path) -> None:
+        """Test that an archive left by an earlier build is replaced, not added to."""
+        config = make_config(tmp_path, "src/my_pkg", create_dist_zip_file=True)
+        archive = tmp_path / "dist" / "my-app-0.1.0-amd64.zip"
+        archive.parent.mkdir()
+        with ZipFile(archive, "w") as zf:
+            zf.writestr(
+                "my-app-0.1.0-amd64/stale.txt", "left over from an earlier build"
+            )
+
+        UVBuilder(config).build()
+
+        with ZipFile(archive) as zf:
+            names = zf.namelist()
+        assert "my-app-0.1.0-amd64/stale.txt" not in names
+        assert "my-app-0.1.0-amd64/my-app.exe" in names
+
+    def test_build_returns_result_paths(self, tmp_path: Path) -> None:
+        """Test that the result names the application folder and the archive."""
+        config = make_config(tmp_path, "src/my_pkg", create_dist_zip_file=True)
+
+        result = UVBuilder(config).build()
+
+        assert result.app_dir == tmp_path / "build" / "my-app-0.1.0-amd64"
+        assert result.archive == tmp_path / "dist" / "my-app-0.1.0-amd64.zip"
 
 
 @pytest.mark.usefixtures("externals")

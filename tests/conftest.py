@@ -17,9 +17,19 @@ from pyretort.types import BuildConfig, PythonArchitecture
 
 
 def fake_pydist_manager(pydist_path: Path, downloader: Downloader) -> MagicMock:
-    """Stand in for PydistManager: same python.exe location, no download."""
+    """Stand in for PydistManager: same python.exe location, no download.
+
+    Installing the embedded Python leaves an empty python.exe stub, so the
+    build directory has the layout of a real build.
+    """
     manager = MagicMock(spec=PydistManager)
     manager.python_executable = pydist_path / "python.exe"
+
+    def install_embedded_python(*_: object, **__: object) -> None:
+        pydist_path.mkdir(parents=True, exist_ok=True)
+        manager.python_executable.write_bytes(b"")
+
+    manager.install_embedded_python.side_effect = install_embedded_python
     return manager
 
 
@@ -48,8 +58,14 @@ def externals() -> Iterator[BuildExternals]:
 
 @pytest.fixture
 def generate_exe() -> Iterator[MagicMock]:
-    """Replace the launcher generator so no exe is written."""
-    with patch("pyretort.builder.uv_builder.generate_exe") as mock:
+    """Replace the launcher generator with one that writes an empty stub exe."""
+
+    def write_stub(target: Path, **_: object) -> None:
+        target.write_bytes(b"")
+
+    with patch(
+        "pyretort.builder.uv_builder.generate_exe", side_effect=write_stub
+    ) as mock:
         yield mock
 
 

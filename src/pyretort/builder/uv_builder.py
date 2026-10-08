@@ -2,21 +2,29 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+from pathlib import Path
 
 from .base_builder import BaseBuilder
 from .downloader import Downloader
 from .errors import BuildError
 from .exe_generator import generate_exe
 from .pydist_manager import PydistManager
+from .result import BuildResult
 
 UV_INSTALL_URL = "https://docs.astral.sh/uv/getting-started/installation/"
 
 
 class UVBuilder(BaseBuilder):
-    """Build build/<dist_name>/: embedded Python, the project via uv, a launcher."""
+    """Build build/<dist_name>/: embedded Python, the project via uv, a launcher.
 
-    def build(self) -> None:
-        """Build the distribution; raise BuildError for every expected failure."""
+    With create_dist_zip_file the folder is also packed into dist/<dist_name>.zip.
+    """
+
+    def build(self) -> BuildResult:
+        """Build the distribution and return where it went.
+
+        Raise BuildError for every expected failure.
+        """
         if shutil.which("uv") is None:
             raise BuildError(f"uv was not found in PATH. Install uv: {UV_INSTALL_URL}")
         self.log(f"Preparing build directory {self.app_path}")
@@ -25,7 +33,12 @@ class UVBuilder(BaseBuilder):
             self._build_as_package()
         else:
             self._build_as_standalone()
+        archive: Path | None = None
+        if self.config.create_dist_zip_file:
+            archive = self.create_archive()
+            self.log(f"Created archive {archive}")
         self.log(f"Build complete: {self.app_path}")
+        return BuildResult(app_dir=self.app_path, archive=archive)
 
     def _build_as_standalone(self) -> None:
         # Implementation for building installing dependencies, then copy source files
