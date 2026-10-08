@@ -90,7 +90,7 @@ def _check_requires_python(requires_python: object, python_version: object) -> N
         )
 
 
-def _build_backend(data: dict[str, Any]) -> str:
+def _read_build_backend(data: dict[str, Any]) -> str:
     """Return the build backend from [build-system], which package mode needs.
 
     Any PEP 517 backend works with 'uv pip install', but an empty value would
@@ -326,7 +326,7 @@ class BuildConfig(BaseModel):
 
         # Package mode builds the project with uv, which needs a PEP 517
         # backend; standalone mode copies the sources and never builds them
-        build_backend = None if standalone else _build_backend(data)
+        build_backend = None if standalone else _read_build_backend(data)
 
         # Determine project directory (parent of pyproject.toml)
         project_dir = pyproject_path.parent.absolute()
