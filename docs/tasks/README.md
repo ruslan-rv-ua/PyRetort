@@ -61,7 +61,7 @@ uv run mypy src launcher
 | 17 | [17-download-errors.md](17-download-errors.md) | `build`: `BuildError` замість трейсбека, коли вбудований Python не завантажується (немає архіву на python.org, немає мережі) | 09, 16 | DONE |
 | 18 | [18-help-markup.md](18-help-markup.md) | `init --help`: назва секції `[tool.pyretort]` зникає з опису `--force` | — | DONE |
 | 19 | [19-unused-build-cache.md](19-unused-build-cache.md) | Прибрати мертвий код кешу збірки: `BuildConfig.build_hash` і `CacheManager` | — | TODO |
-| 20 | [20-trusted-publishing.md](20-trusted-publishing.md) | Публікація на PyPI з GitHub Actions без токенів (trusted publishing), репетиція на TestPyPI | 08, 09 | TODO |
+| 20 | [20-trusted-publishing.md](20-trusted-publishing.md) | Публікація на PyPI з GitHub Actions без токенів (trusted publishing), репетиція на TestPyPI | 08, 09 | DONE |
 
 ## Ідеї після 0.1 без специфікації
 
