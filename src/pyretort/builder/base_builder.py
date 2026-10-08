@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+from collections.abc import Callable
 
 from pyretort.constants import (
     BUILD_DIR_DEFAULT,
@@ -14,11 +15,15 @@ class BaseBuilder:
     """Paths of a build and the directory setup every builder shares.
 
     Constructing a builder only computes paths; nothing touches the disk
-    until ``prepare_directories`` runs.
+    until ``prepare_directories`` runs. ``log`` receives one progress message
+    per build stage; the default discards them.
     """
 
-    def __init__(self, config: BuildConfig) -> None:
+    def __init__(
+        self, config: BuildConfig, log: Callable[[str], None] = lambda _: None
+    ) -> None:
         self.config = config
+        self.log = log
         self.download_path = self.config.project_dir_abs_path / DOWNLOAD_DIR_DEFAULT
         self.build_path = self.config.project_dir_abs_path / BUILD_DIR_DEFAULT
         self.dist_path = self.config.project_dir_abs_path / DIST_DIR_DEFAULT

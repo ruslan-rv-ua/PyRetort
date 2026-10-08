@@ -17,7 +17,10 @@ from pyretort.types import BuildConfig, PythonArchitecture
 
 
 def make_config(
-    project_dir: Path, source_subdir: str, icon_file: str | None = None
+    project_dir: Path,
+    source_subdir: str,
+    icon_file: str | None = None,
+    python_version: str = "3.13.0",
 ) -> BuildConfig:
     """Create a package-mode BuildConfig rooted at project_dir."""
     return BuildConfig(
@@ -26,7 +29,7 @@ def make_config(
         project_name="My App",
         project_version="0.1.0",
         project_source_subdir_rel_path=Path(source_subdir),
-        python_version="3.13.0",
+        python_version=python_version,
         python_architecture=PythonArchitecture.AMD64,
         build_backend="uv_build",
         icon_file_rel_path=None if icon_file is None else Path(icon_file),
@@ -102,6 +105,24 @@ class TestUVBuilderLauncher:
 
         icon_file = generate_exe.call_args.kwargs["icon_file"]
         assert icon_file == project_dir / "assets" / "app.ico"
+
+
+@pytest.mark.usefixtures("externals", "generate_exe")
+class TestUVBuilderProgress:
+    """Tests for the progress messages UVBuilder reports through log."""
+
+    def test_build_logs_progress_messages(self, tmp_path: Path) -> None:
+        """Test that each build stage is reported and the last message names the result."""
+        config = make_config(tmp_path, "src/my_pkg", python_version="3.13.9")
+        messages: list[str] = []
+
+        UVBuilder(config, log=messages.append).build()
+
+        assert "Installing embedded Python 3.13.9 (amd64)" in messages
+        assert (
+            messages[-1]
+            == f"Build complete: {tmp_path / 'build' / 'my-app-0.1.0-amd64'}"
+        )
 
 
 @pytest.mark.usefixtures("externals")
