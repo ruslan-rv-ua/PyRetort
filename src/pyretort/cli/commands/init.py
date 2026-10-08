@@ -15,7 +15,7 @@ from pyretort.constants import (
     INSTALL_AS_PACKAGE_DEFAULT,
     SHOW_CONSOLE_DEFAULT,
 )
-from pyretort.types import PythonArchitecture
+from pyretort.types import PythonArchitecture, derive_main_module, missing_dunder_main
 
 
 def init_command(
@@ -30,12 +30,32 @@ def init_command(
         writable=True,
         help="Path to the pyproject.toml file of the target project.",
     ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help="Overwrite an existing [tool.pyretort] section.",
+    ),
 ) -> None:
     """Initialize a PyRetort configuration file for a Python project."""
 
     pyproject_toml_path = pyproject_toml_path.resolve()
+    project_path = pyproject_toml_path.parent
 
-    _update_pyproject_toml(pyproject_toml_path)
+    pyproject_data = tomlkit.parse(pyproject_toml_path.read_text(encoding="utf-8"))
+    if _has_pyretort_section(pyproject_data) and not force:
+        echo(
+            ctx,
+            "pyproject.toml already contains [tool.pyretort]; use --force to overwrite",
+            err=True,
+        )
+        raise typer.Exit(1)
+
+    project_name = str(pyproject_data.get("project", {}).get("name", ""))
+    source_subdir = _find_project_source_subdir(project_path, project_name)
+    _set_pyretort_section(
+        pyproject_data, _build_pyretort_section(project_path, source_subdir)
+    )
+    pyproject_toml_path.write_text(tomlkit.dumps(pyproject_data), encoding="utf-8")
 
     echo(ctx, f"pyproject.toml updated successfully at: {pyproject_toml_path}")
     echo(ctx, "Next steps:")
@@ -45,28 +65,48 @@ def init_command(
     )
     echo(ctx, "  2. Run 'pyretort build' to create the distributable package.")
 
+    main_module = derive_main_module(Path(source_subdir), project_name)
+    dunder_main = missing_dunder_main(project_path, Path(source_subdir), main_module)
+    if dunder_main is not None:
+        echo(
+            ctx,
+            f"warning: {dunder_main} not found; "
+            "'pyretort build' will fail until it exists",
+        )
 
-def _update_pyproject_toml(pyproject_toml_path: Path) -> None:
-    """Update the pyproject.toml file to include PyRetort configuration."""
 
-    project_path = pyproject_toml_path.parent.resolve()
+def _has_pyretort_section(pyproject_data: tomlkit.TOMLDocument) -> bool:
+    """Return True if the document already has a [tool.pyretort] section."""
+    tool_section = cast(MutableMapping[str, Any], pyproject_data.get("tool", {}))
+    return "pyretort" in tool_section
 
-    pyproject_data = tomlkit.parse(pyproject_toml_path.read_text(encoding="utf-8"))
 
+def _set_pyretort_section(
+    pyproject_data: tomlkit.TOMLDocument, pyretort_config: Table
+) -> None:
+    """Store the section as [tool.pyretort], replacing any existing one."""
     if "tool" not in pyproject_data:
         pyproject_data["tool"] = tomlkit.table()
 
     # A Table, or an OutOfOrderTableProxy when [tool.*] tables are scattered.
     tool_section = cast(MutableMapping[str, Any], pyproject_data["tool"])
+    tool_section["pyretort"] = pyretort_config
+
+
+def _build_pyretort_section(project_path: Path, source_subdir: str) -> Table:
+    """Build the commented [tool.pyretort] section for the project."""
 
     pyretort_config: Table = tomlkit.table()
-
-    project_name = str(pyproject_data.get("project", {}).get("name", ""))
-    source_subdir = _find_project_source_subdir(project_path, project_name)
 
     pyretort_config.add(
         tomlkit.comment(
             "Path to the project source directory relative to the project root"
+        )
+    )
+    pyretort_config.add(
+        tomlkit.comment(
+            "The launcher runs 'python -m <last path component>', "
+            "so point it at the package directory"
         )
     )
     pyretort_config["project_source_subdir"] = source_subdir
@@ -76,6 +116,9 @@ def _update_pyproject_toml(pyproject_toml_path: Path) -> None:
             "Name of the main Python file to execute (e.g., main.py, app.py)"
         )
     )
+    pyretort_config.add(
+        tomlkit.comment("Used only when install_as_package = false; ignored otherwise")
+    )
     main_file = _find_main_file(project_path / source_subdir)
     if main_file is None:
         pyretort_config.add(
@@ -84,10 +127,14 @@ def _update_pyproject_toml(pyproject_toml_path: Path) -> None:
         pyretort_config["main_file"] = "main.py"
     else:
         pyretort_config["main_file"] = main_file
+
     pyretort_config.add(
         tomlkit.comment(
             "Whether to install the project as a Python package during build"
         )
+    )
+    pyretort_config.add(
+        tomlkit.comment("Must be true: standalone mode (false) is not supported yet")
     )
     pyretort_config["install_as_package"] = INSTALL_AS_PACKAGE_DEFAULT
 
@@ -113,9 +160,7 @@ def _update_pyproject_toml(pyproject_toml_path: Path) -> None:
     )
     pyretort_config["create_dist_zip_file"] = True
 
-    tool_section["pyretort"] = pyretort_config
-
-    pyproject_toml_path.write_text(tomlkit.dumps(pyproject_data), encoding="utf-8")
+    return pyretort_config
 
 
 def _find_project_source_subdir(project_path: Path, project_name: str) -> str:
