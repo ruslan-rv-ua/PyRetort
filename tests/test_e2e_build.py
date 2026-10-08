@@ -1,9 +1,10 @@
-"""End-to-end test: build a tiny project for real and run the generated exe.
+"""End-to-end tests: build two tiny projects for real and run the generated exe.
 
-Unlike the mocked build tests this one downloads the embedded Python, lets
-uv install the project into it and runs the launcher, so it catches what the
-mocks cannot see: the ._pth format, uv against an embedded Python and the
-launcher template. It is slow and needs the network, so it runs only with
+Unlike the mocked build tests these download the embedded Python, let uv
+install into it and run the launcher, so they catch what the mocks cannot
+see: the ._pth format, uv against an embedded Python and the launcher
+template. hello-app is built in package mode, hello-script in standalone
+mode. They are slow and need the network, so they run only with
 ``uv run pytest -m e2e``; AGENTS.md describes the download cache.
 """
 
@@ -64,29 +65,78 @@ from hello_app import main
 main()
 """
 
+# A script project as 'uv init' creates it: no package, no [build-system].
+SCRIPT_PYPROJECT = f"""\
+[project]
+name = "hello-script"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = ["six"]
+
+[tool.pyretort]
+project_source_subdir = "."
+main_file = "main.py"
+install_as_package = false
+python_version = "{PYTHON_VERSION}"
+python_architecture = "amd64"
+show_console_window = false
+create_dist_zip_file = true
+"""
+
+# The script imports a module next to itself, which only the ._pth entry for
+# its folder makes possible, and a dependency uv installed into site-packages.
+SCRIPT_MAIN = """\
+import sys
+from pathlib import Path
+
+import six
+
+import helper
+
+marker = Path(sys.executable).resolve().parent.parent / "e2e_marker.txt"
+marker.write_text(f"{helper.VALUE} six {six.__version__}", encoding="utf-8")
+"""
+
+SCRIPT_HELPER = 'VALUE = "helper imported"\n'
+
+
+def copy_cached_python(project: Path) -> None:
+    """Copy the embedded Python archive from the cache into project/downloads/.
+
+    When PYRETORT_E2E_DOWNLOAD_DIR names a directory that holds the archive,
+    the build finds it in downloads/ instead of downloading it.
+    """
+    cache_dir = os.environ.get(DOWNLOAD_DIR_ENV)
+    if cache_dir is None:
+        return
+    cached_archive = Path(cache_dir) / EMBEDDED_PYTHON_ZIP
+    if cached_archive.is_file():
+        downloads = project / "downloads"
+        downloads.mkdir()
+        shutil.copyfile(cached_archive, downloads / EMBEDDED_PYTHON_ZIP)
+
 
 @pytest.fixture
 def hello_project(tmp_path: Path) -> Path:
-    """Create the hello-app project in tmp_path and return its pyproject.toml.
-
-    When PYRETORT_E2E_DOWNLOAD_DIR names a directory that holds the embedded
-    Python archive, the archive is copied into the project's downloads/, so
-    the build finds it there instead of downloading it.
-    """
+    """Create the hello-app project in tmp_path and return its pyproject.toml."""
     pyproject = tmp_path / "pyproject.toml"
     pyproject.write_text(PYPROJECT, encoding="utf-8")
     package = tmp_path / "src" / "hello_app"
     package.mkdir(parents=True)
     (package / "__init__.py").write_text(HELLO_APP_INIT, encoding="utf-8")
     (package / "__main__.py").write_text(HELLO_APP_MAIN, encoding="utf-8")
+    copy_cached_python(tmp_path)
+    return pyproject
 
-    cache_dir = os.environ.get(DOWNLOAD_DIR_ENV)
-    if cache_dir is not None:
-        cached_archive = Path(cache_dir) / EMBEDDED_PYTHON_ZIP
-        if cached_archive.is_file():
-            downloads = tmp_path / "downloads"
-            downloads.mkdir()
-            shutil.copyfile(cached_archive, downloads / EMBEDDED_PYTHON_ZIP)
+
+@pytest.fixture
+def script_project(tmp_path: Path) -> Path:
+    """Create the hello-script project in tmp_path and return its pyproject.toml."""
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_text(SCRIPT_PYPROJECT, encoding="utf-8")
+    (tmp_path / "main.py").write_text(SCRIPT_MAIN, encoding="utf-8")
+    (tmp_path / "helper.py").write_text(SCRIPT_HELPER, encoding="utf-8")
+    copy_cached_python(tmp_path)
     return pyproject
 
 
@@ -140,3 +190,29 @@ class TestEndToEndBuild:
         assert "Build complete" in second.output
         assert not marker.exists()
         assert (app_dir / "hello-app.exe").is_file()
+
+    def test_standalone_build_produces_runnable_launcher(
+        self, script_project: Path
+    ) -> None:
+        """Test that the built exe runs main.py with its neighbour and its dependency."""
+        project = script_project.parent
+
+        result = runner.invoke(app, ["build", "-p", str(script_project)])
+
+        assert result.exit_code == 0, result.output
+        assert "Build complete" in result.output
+        app_dir = project / "build" / "hello-script-0.1.0-amd64"
+        exe = app_dir / "hello-script.exe"
+        assert exe.is_file()
+        sources = app_dir / "hello-script" / "app"
+        assert (sources / "main.py").is_file()
+        assert (sources / "helper.py").is_file()
+        assert not (sources / "build").exists()
+
+        completed = run_launcher(exe, project / "elsewhere")
+
+        assert completed.returncode == 0, completed.stderr.decode("utf-8", "replace")
+        marker = app_dir / "e2e_marker.txt"
+        assert marker.is_file()
+        assert marker.read_text(encoding="utf-8").startswith("helper imported six ")
+        assert (project / "dist" / "hello-script-0.1.0-amd64.zip").is_file()
