@@ -11,7 +11,7 @@
 - `README.md` — 7 рядків: назва, одне речення і два службові рядки (URL `versions-manifest.json` і слово `python-embedded-launcher`), які треба прибрати.
 - `pyproject.toml`: `description = "Add your description here"`, немає `keywords`, `classifiers`, `[project.urls]`. `license = {text = "MIT"}`, файл `LICENSE` є (коміт `811dada`).
 - `CHANGELOG.md` немає. Історія для першого запису — `git log --oneline` від `4ed4aa3` (жовтень 2025) до поточного HEAD плюс усі задачі зі статусом DONE у [README.md](README.md) на момент виконання.
-- Поведінка команд і поля конфігурації — як після задач 04-06: команди `version`, `init [--force]`, `check`, `build`, `cleanup`, спільна опція `-p/--pyproject-toml`, глобальна `--quiet`. Поля `[tool.pyretort]`: `python_version`, `python_architecture` (`amd64` | `win32` | `arm64`), `project_source_subdir`, `create_dist_zip_file`, `show_console_window` (default false), `install_as_package` (має бути `true`), `main_file` (ігнорується в режимі пакета), `icon_file_rel_path` (необов'язкове, `.ico`). Точні тексти брати з коду (`src/pyretort/types.py`, `src/pyretort/cli/commands/init.py`), а не з цього документа.
+- Поведінка команд і поля конфігурації — як після задач 04-06, 14 і 15: команди `version`, `init [--force]`, `check`, `build`, `cleanup`, спільна опція `-p/--pyproject-toml`, глобальна `--quiet`. Поля `[tool.pyretort]`: `python_version`, `python_architecture` (`amd64` | `win32` | `arm64`), `project_source_subdir`, `create_dist_zip_file`, `show_console_window` (default false), `install_as_package` (має бути `true`), `main_file` (ігнорується в режимі пакета), `icon_file_rel_path` (необов'язкове, `.ico`). Точні тексти брати з коду (`src/pyretort/types.py`, `src/pyretort/cli/commands/init.py`), а не з цього документа.
 - Результат збірки: `build/<name>-<version>-<arch>/<name>.exe` плюс тека `<name>/` з вбудованим Python і site-packages; `dist/<name>-<version>-<arch>.zip`.
 - Вимоги до машини розробника: Windows, Python ≥ 3.11 для самого PyRetort, `uv` у PATH (збірка викликає `uv pip install`).
 - **Походження лаунчера.** `src/pyretort/builder/exe_generator/genexe_template` (123 392 байти) і код у `generate_exe.py` (`MAX_CMD_LENGTH = 259`, сигнатура-заповнювач із `X`, макрос `{EXE_DIR}`, прапорець консолі, `add_icon_to_exe` з `RT_GROUP_ICON`/`RT_ICON`) походять із пакета **gen-exe**: PyPI `gen-exe` 0.2.1 від 8 лютого 2021, автор S.C. (Sil) van de Leemput, ліцензія MIT, репозиторій https://github.com/silvandeleemput/gen-exe. Його README описує той самий механізм: exe з вбудованою командою, `{EXE_DIR}` як тека exe, прапорець приховування консолі (з 0.2.1), утиліта `add-icon-to-exe`. Ліцензія MIT вимагає зберігати текст ліцензії й копірайт при поширенні коду.
@@ -19,7 +19,7 @@
   - Лаунчер — власний код: `launcher/launcher.c`, збірка `launcher/build.py` через `ziglang`, шаблони в `src/pyretort/builder/exe_generator/templates/`.
   - Від gen-exe у `generate_exe.py` лишається Python-код іконок: `add_icon_to_exe`, класи `Icon` і `DataStruct`, структури `ICONDIRHEADER`, `ICONDIRENTRY`, `GRPICONDIRENTRY`. Подяка й ліцензія потрібні саме для нього.
   - Ліцензія gen-exe — файл `LICENSE` у корені його репозиторію, рядок копірайту `Copyright (c) 2021 Sil C. van de Leemput`.
-  - Задача 10 перевірила, що колишній `genexe_template` побайтно збігався з `genexe/res/template` 0.2.1.
+  - Побайтний збіг колишнього `genexe_template` з `genexe/res/template` 0.2.1 перевірено 8 жовтня 2026 (контекст задачі 15).
 
 ## Рішення
 
@@ -58,7 +58,7 @@
 
 ## Коміти
 
-- `docs: add third-party notice for the gen-exe launcher template`
+- `docs: add third-party notice for the gen-exe icon code`
 - `docs: write README and changelog`
 - `build: fill project metadata`
 

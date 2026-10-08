@@ -57,7 +57,7 @@
   - Цілі: `x86_64-windows-gnu`, `x86-windows-gnu`, `aarch64-windows-gnu`.
   - Прапорці: `-municode -Os -s -Wl,--subsystem,console` або `-Wl,--subsystem,windows`. На `-mwindows` zig не зважає: підсистема лишається 3 (console).
   - Розміри: amd64 61 440 байтів, win32 72 704, arm64 20 480 (console) і 20 992 (GUI).
-  - Дві збірки поспіль дали побайтно однакові файли.
+  - Дві окремі збірки всіх шести файлів з остаточними прапорцями дали побайтно однакові файли.
 - Перевірено для обох варіантів, для amd64 і для win32 (через WOW64), лаунчер у теці `dir with space тест`:
   - усі аргументи з таблиці вище доходять дослівно, разом із `"`, `\` у кінці, порожніми, кириличними, `日本`, `😀` і `é ü ß`;
   - з теки `...\日本\` прототип запускає справжню збірку hello-cli: `Arguments: ['arg1', 'two words', '日本']`;
@@ -81,7 +81,12 @@
 
 - `generate_exe.py`: `EXE_TEMPLATE_FILE` (рядок 19), `MAX_CMD_LENGTH` і `REPLACE_SIGNATURE` (20-21), функція `generate_exe` (24-65).
 - `uv_builder.py:66-76`: рядок команди й виклик `generate_exe`.
-- Тести: `tests/test_generate_exe.py`, де перевіряються ASCII-байти команди, розмір, що дорівнює шаблону, і ліміт 259. Підміна `generate_exe` у `tests/conftest.py:50-53`, тести команди в `tests/test_uv_builder.py:38-68`.
+- Тести, які зачіпає зміна:
+  - `tests/test_generate_exe.py` імпортує `EXE_TEMPLATE_FILE` на рівні модуля (рядок 10);
+  - у ньому `test_generate_exe_embeds_command_into_template` (16-25) перевіряє ASCII-байти команди і розмір, що дорівнює шаблону, а `test_generate_exe_rejects_command_longer_than_limit` (27-38) — ліміт 259;
+  - `tests/test_uv_builder.py`: `test_build_turns_long_command_into_build_error` (149-154) будує модуль із 250 літер `m` і чекає `match="the limit is 259"`. З лімітом 1023 помилки вже не буде;
+  - підміна `generate_exe` — `tests/conftest.py:50-53` (`MagicMock`, приймає будь-які аргументи), тести команди — `tests/test_uv_builder.py:38-68`.
+- Задача 06 планує, що підмінений `generate_exe` створюватиме файли-заглушки. Якщо в цієї підміни буде `side_effect` з явною сигнатурою, туди треба додати параметр `architecture`.
 - `examples/hello-cli/README.md`: застереження «Known limitation: the current launcher passes them through `cmd.exe`...».
 
 ## Рішення
@@ -92,7 +97,8 @@
    - Скрипт `launcher/build.py`, запуск `uv run --group launcher python launcher/build.py`. Він компілює шість шаблонів `src/pyretort/builder/exe_generator/templates/launcher-<arch>-<console|gui>` (без розширення, як `genexe_template`), де `<arch>` — значення `PythonArchitecture`. Компілятор: `sys.executable -m ziglang cc` з цілями й прапорцями з прототипу.
    - Режим `--check` збирає в тимчасову теку й порівнює побайтно із закомміченими файлами; при розбіжності код 1 і список файлів.
 3. **Поведінка лаунчера.**
-   - Шаблон команди: масив `wchar_t` на 1024 елементи з маркером `PYRETORT-LAUNCHER-COMMAND-PLACEHOLDER`, далі нулі. Маркер трапляється у файлі рівно один раз.
+   - Шаблон команди: глобальний масив `wchar_t` на 1024 елементи з маркером `PYRETORT-LAUNCHER-COMMAND-PLACEHOLDER`, далі нулі. Маркер трапляється у файлі рівно один раз.
+   - Масив оголошено як `__attribute__((used)) volatile wchar_t ...[1024]`: без `volatile` оптимізатор при `-Os` може підставити константу замість читання з файлу, і запис команди нічого не змінить. Лаунчер копіює масив у локальний буфер поелементно.
    - `{EXE_DIR}` розгортається в теку лаунчера (`GetModuleFileNameW` без останнього компонента, буфер росте для довгих шляхів), усі входження.
    - Якщо в лаунчера є аргументи, до розгорнутої команди дописується пробіл і **сирий хвіст** `GetCommandLineW` після `argv[0]`. `argv[0]` пропускається за правилом CRT для імені програми: лапки перемикають стан, ім'я закінчується на першому пробілі чи табуляції поза лапками; далі пропускаються пробіли й табуляції. Ніякого повторного розбору чи взяття в лапки:
 
@@ -114,8 +120,9 @@
    - Помилка запуску: повідомлення `Cannot start <command line>: <текст FormatMessageW>`, код 1. Консольний варіант пише в stderr (`WriteConsoleW`, а при перенаправленні — UTF-8 через `WriteFile`), GUI-варіант показує `MessageBoxW`.
 4. **`generate_exe`.**
    - Сигнатура: `generate_exe(target, command, icon_file=None, show_console=True, architecture=PythonArchitecture.AMD64)`.
+   - Публічна функція `launcher_template(architecture: PythonArchitecture, show_console: bool) -> Path` повертає шлях до шаблону. Її використовують `generate_exe` і тести (наприклад, «розмір дорівнює шаблону»). `EXE_TEMPLATE_FILE` видаляється.
    - Шаблон обирається за `architecture` і `show_console`. Команда записується в UTF-16LE на місце маркера й доповнюється нулями до 1024 елементів.
-   - `MAX_CMD_LENGTH = 1023`. Довша команда дає той самий `ValueError`, що й у задачі 05 (`Launcher command is N characters long; the limit is 1023: ...`), і файл не створюється.
+   - `MAX_CMD_LENGTH = 1023` одиниці UTF-16. Довжина рахується як `len(command.encode("utf-16-le")) // 2`, бо символ поза BMP (наприклад, `😀`) займає дві одиниці. Довша команда дає той самий `ValueError`, що й у задачі 05 (`Launcher command is N characters long; the limit is 1023: ...`, де N — одиниці UTF-16), і файл не створюється.
    - Не-ASCII команди дозволені.
    - Якщо маркер у шаблоні не знайдено рівно один раз — `RuntimeError`.
    - Іконка, як і раніше, додається після запису (`add_icon_to_exe`).
@@ -129,7 +136,8 @@
 - Справжній запуск згенерованого лаунчера через `subprocess.Popen`/`run`:
   - команда `"<sys._base_executable>" "{EXE_DIR}\probe.py"`;
   - `_base_executable`, а не `sys.executable`, бо `python.exe` з `.venv` — перенаправлювач, який сам стартує базовий інтерпретатор дочірнім процесом;
-  - `probe.py` лежить поруч із лаунчером і друкує JSON з `sys.argv[1:]`, `os.getppid()` і, на запит, stdin.
+  - `probe.py` лежить поруч із лаунчером і друкує JSON з `sys.argv[1:]` і `os.getppid()`;
+  - режими проби вмикаються змінними середовища, а не аргументами, щоб не псувати `argv`: `PROBE_EXIT_CODE=3` — вийти з цим кодом, `PROBE_READ_STDIN=1` — прочитати stdin і додати його в JSON.
 - `UVBuilder(config).build()` з підміненими `PydistManager`, `subprocess.run` і `generate_exe`, як у `tests/test_uv_builder.py`.
 
 ## Кроки
@@ -138,28 +146,56 @@
    - `uv run --group launcher python launcher/build.py` створює шість шаблонів;
    - друга збірка з `--check` завершується з кодом 0;
    - `uv lock` оновлює `uv.lock`.
-2. `tests/test_launcher.py` (маркер `windows`; кожен запуск триває десятки мілісекунд, тож тести не `slow`):
-   - `test_launcher_passes_arguments_verbatim`, параметризований рядками таблиці з контексту плюс `["C:\\Program Files\\"]`, `["x\\\\", "y z\\"]`, `["привіт", "світ"]`. Очікується `argv == args`. У таблиці є `日本`, `😀` і `é ü ß`: вони ловлять повернення до вузьких рядків навіть на машині з кодовою сторінкою 1251.
-   - Червоний етап: зі старим шаблоном команда з двома токенами в лапках не стартує взагалі, а локально з кириличним шляхом до інтерпретатора `generate_exe` падає з `UnicodeEncodeError`.
-   - Зміна: рішення 4 для `amd64` і консольного варіанта.
-3. `test_launcher_returns_child_exit_code` (проба завершується з кодом 3), `test_launcher_passes_stdin`, `test_launcher_starts_python_directly` (`os.getppid()` у пробі дорівнює `Popen.pid` лаунчера), `test_launcher_expands_exe_dir_with_spaces_and_non_ascii` (лаунчер у `tmp_path / "dir with space тест 日本"`).
-4. `tests/test_generate_exe.py`:
-   - `test_generate_exe_embeds_command_as_utf16` (команда з кирилицею, розмір дорівнює шаблону);
-   - `test_generate_exe_picks_template_for_console_and_architecture`, параметризований шістьма парами, очікування `Machine` 0x8664 / 0x14C / 0xAA64 і `Subsystem` 3 / 2;
-   - `test_generate_exe_rejects_command_longer_than_limit` перевести на 1100 символів (у повідомленні `1100` і `1023`).
-5. GUI-варіант і `win32`: `test_launcher_passes_arguments_verbatim` і `test_launcher_returns_child_exit_code` параметризувати ще й за `(architecture, show_console)` для `amd64`/`win32` × console/GUI. `win32` на x64 працює через WOW64. `arm64` запускається лише на ARM64-машині (`pytest.mark.skipif(platform.machine() != "ARM64")`); на x64 його покриває крок 4.
-6. `test_build_uses_launcher_for_python_architecture` (`tests/test_uv_builder.py`): конфігурація `win32` → `generate_exe` отримав `architecture=PythonArchitecture.WIN32`.
+Після кожного кроку `uv run pytest` зелений. Тести, чиї очікування змінює крок, оновлюються в тому ж кроці.
+
+2. **Аргументи дослівно** (`tests/test_launcher.py`, маркер `windows`; кожен запуск триває десятки мілісекунд, тож тести не `slow`):
+   - `test_launcher_passes_arguments_verbatim`, параметризований списками аргументів, кожен список — один запуск:
+     - `["arg1", "two words"]`, `[""]`, `["a", "", "b"]`, `['say "hi"']`;
+     - `["a&b", "x|y", "a>out.txt", "^x", "%USERNAME%"]`;
+     - `["C:\\Program Files\\"]`, `["x\\\\", "y z\\"]`;
+     - `["привіт", "світ"]`, `["日本", "😀", "é ü ß"]`.
+   - Очікується `argv == args`, а в робочій теці не з'являється `out.txt`. `日本`, `😀` і `é ü ß` ловлять повернення до вузьких рядків навіть на машині з кодовою сторінкою 1251.
+   - Червоний етап: зі старим шаблоном команда з двома токенами в лапках не стартує взагалі. Локально, з кириличним шляхом до інтерпретатора, `generate_exe` ще раніше падає з `UnicodeEncodeError`.
+   - У цьому ж кроці, до зміни коду, `test_generate_exe_embeds_command_into_template` замінюється на `test_generate_exe_embeds_command_as_utf16`. Цей тест бере команду з кирилицею й перевіряє UTF-16LE-байти та розмір, що дорівнює `launcher_template(PythonArchitecture.AMD64, True)`. Зі старим кодом він падає з `UnicodeEncodeError`.
+   - Зміна: рішення 4 для `amd64` і консольного варіанта (`launcher_template`, UTF-16, ліміт 1023).
+   - Ліміт змінився, тож у цьому ж кроці оновити два тести:
+     - `test_generate_exe_rejects_command_longer_than_limit`: команда з 1100 символів, у повідомленні `1100` і `1023`;
+     - `test_build_turns_long_command_into_build_error`: модуль із 1100 літер `m`, `match="the limit is 1023"`.
+3. **Решта поведінки лаунчера** (`tests/test_launcher.py`). Тести пройдуть одразу: код лаунчера готовий з кроку 1. Їхня роль — закріпити поведінку.
+   - `test_launcher_starts_python_directly`: `os.getppid()` у пробі дорівнює `Popen.pid` лаунчера (на старому шаблоні батьком був `cmd.exe`).
+   - `test_launcher_expands_exe_dir_with_spaces_and_non_ascii`: лаунчер у `tmp_path / "dir with space тест 日本"` (старий шаблон у теці `日本` не стартував).
+   - `test_launcher_returns_child_exit_code` (`PROBE_EXIT_CODE=3` → код 3) і `test_launcher_passes_stdin` (`PROBE_READ_STDIN=1`). Цю поведінку мав і старий шаблон, тести її охороняють.
+4. **Вибір шаблону** (`tests/test_generate_exe.py`): `test_generate_exe_picks_template_for_console_and_architecture`.
+   - Параметризований шістьма парами `(architecture, show_console)`; очікування з PE-заголовка: `Machine` 0x8664 / 0x14C / 0xAA64 і `Subsystem` 3 (console) / 2 (GUI).
+   - Червоний етап: `generate_exe` ще не має параметра `architecture` і завжди бере консольний amd64.
+   - Зміна: решта рішення 4.
+5. **GUI-варіант і `win32` у поведінкових тестах.** `test_launcher_passes_arguments_verbatim` і `test_launcher_returns_child_exit_code` параметризувати ще й за `(architecture, show_console)` для `amd64`/`win32` × console/GUI.
+   - Тести пройдуть одразу: це перевірка шаблонів з кроку 1 на справжньому запуску.
+   - `win32` на x64 працює через WOW64.
+   - `arm64` запускається лише на ARM64-машині (`pytest.mark.skipif(platform.machine() != "ARM64")`); на x64 його покриває крок 4.
+6. `test_build_uses_launcher_for_python_architecture` (`tests/test_uv_builder.py`): конфігурація `win32` → `generate_exe` отримав `architecture=PythonArchitecture.WIN32`. Зараз падає, бо `UVBuilder` параметра не передає. Зміна: рішення 5.
 7. Прибрати `genexe_template` і застереження з `examples/hello-cli/README.md`; звірити задачу 09 (рішення 6).
-8. CI (`.github/workflows/ci.yml`): крок `uv run --group launcher python launcher/build.py --check` після `uv sync --locked`.
-9. Ручна перевірка:
-   - `uv run pyretort build -p examples/hello-cli/pyproject.toml`; з іншої теки `examples\hello-cli\build\hello-cli-0.1.0-amd64\hello-cli.exe arg1 "two words" "a&b"` → `Arguments: ['arg1', 'two words', 'a&b']`; потім `uv run pyretort cleanup -p examples/hello-cli/pyproject.toml`.
-   - `uv run pyretort build -p "examples/Simple RSS/pyproject.toml"`; подвійний клік на `simple-rss.exe` відкриває вікно без консолі.
+8. **CI** (`.github/workflows/ci.yml`): крок `uv run --group launcher python launcher/build.py --check` після `uv sync --locked`.
+   - CI запускається лише на push у `develop`, на PR або вручну, а push робиться тільки з дозволу користувача.
+   - Зміна CI ризикована саме в чистому середовищі, тож запропонувати користувачеві PR:
+     1. push гілки;
+     2. `gh pr create --base develop`;
+     3. дочекатися зеленого прогону (`gh run list --workflow ci.yml --limit 1`, при збої `gh run view --log-failed`);
+     4. `git flow feature finish --no-ff --no-push --keepremote 15-launcher-without-cmd`;
+     5. `git push origin develop`;
+     6. `git push origin --delete feature/15-launcher-without-cmd`.
+   - Без дозволу на push CI-частину критерію позначити як невиконану й сказати про це.
+9. **Ручна перевірка** (`<repo>` — корінь репозиторію, тут `C:\dev\PyRetort`):
+   - `uv run pyretort build -p examples/hello-cli/pyproject.toml`;
+   - з іншої теки `& "<repo>\examples\hello-cli\build\hello-cli-0.1.0-amd64\hello-cli.exe" arg1 "two words" "a&b"` → `Arguments: ['arg1', 'two words', 'a&b']`;
+   - потім `uv run pyretort cleanup -p examples/hello-cli/pyproject.toml`.
+   - `uv run pyretort build -p "examples/Simple RSS/pyproject.toml"`, потім `Start-Process "<repo>\examples\Simple RSS\build\simple-rss-0.1.0-amd64\simple-rss.exe"`. Попросити користувача підтвердити, що відкрилося лише вікно програми, без консолі, і закрити програму.
    - `uv build` → у колесі шість файлів `pyretort/builder/exe_generator/templates/launcher-*` і немає `genexe_template`.
 10. Критерій завершення з [README.md](README.md).
 
 ## Критерій завершення
 
-- Тести з кроків 2-6 існують і проходять. `uv run pytest` і чотири команди з [README.md](README.md) зелені. `launcher/build.py --check` дає 0 локально і в CI.
+- Тести з кроків 2-6 існують і проходять. `uv run pytest` і чотири команди з [README.md](README.md) зелені. `launcher/build.py --check` дає 0 локально, а в CI — після push з дозволу користувача (крок 8).
 - Ручні перевірки з кроку 9 виконано.
 - У репозиторії немає `genexe_template`; у README hello-cli немає «Known limitation».
 - Статус у [README.md](README.md) → DONE.
