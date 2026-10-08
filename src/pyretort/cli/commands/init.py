@@ -63,7 +63,6 @@ def _update_pyproject_toml(pyproject_toml_path: Path) -> None:
 
     project_name = str(pyproject_data.get("project", {}).get("name", ""))
     source_subdir = _find_project_source_subdir(project_path, project_name)
-    print(f"{source_subdir=}")
 
     pyretort_config.add(
         tomlkit.comment(
@@ -98,7 +97,7 @@ def _update_pyproject_toml(pyproject_toml_path: Path) -> None:
     pyretort_config["python_version"] = _find_python_version()
 
     pyretort_config.add(
-        tomlkit.comment("Python architecture to use (AMD64, x86, ARM64)")
+        tomlkit.comment("Python architecture to use (amd64, win32, arm64)")
     )
     pyretort_config["python_architecture"] = _find_python_architecture()
 
