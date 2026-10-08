@@ -8,6 +8,8 @@ from unittest.mock import MagicMock
 from zipfile import ZipFile
 
 import pytest
+import win32con
+import win32file
 
 from pyretort.builder.errors import BuildError
 from pyretort.builder.uv_builder import UVBuilder
@@ -222,3 +224,50 @@ class TestUVBuilderFailures:
 
         with pytest.raises(BuildError, match="the limit is 1023"):
             UVBuilder(config).build()
+
+    @pytest.mark.usefixtures("generate_exe")
+    def test_build_reports_locked_build_dir(self, tmp_path: Path) -> None:
+        """Test that a file of the previous build held open fails with BuildError."""
+        config = make_config(tmp_path, "src/my_pkg")
+        app_dir = tmp_path / "build" / "my-app-0.1.0-amd64"
+        app_dir.mkdir(parents=True)
+        (app_dir / "stale.txt").write_text("left over from an earlier build")
+
+        with (
+            open(app_dir / "stale.txt", "rb"),
+            pytest.raises(
+                BuildError, match="Could not prepare the build directory"
+            ) as exc_info,
+        ):
+            UVBuilder(config).build()
+
+        assert str(app_dir) in str(exc_info.value)
+        assert "WinError 32" in str(exc_info.value)
+
+    @pytest.mark.usefixtures("generate_exe")
+    def test_build_reports_locked_archive(self, tmp_path: Path) -> None:
+        """Test that an archive another program holds open fails with BuildError."""
+        config = make_config(tmp_path, "src/my_pkg", create_dist_zip_file=True)
+        archive = tmp_path / "dist" / "my-app-0.1.0-amd64.zip"
+        archive.parent.mkdir()
+        archive.write_bytes(b"opened in another program")
+        # Python's open() shares write access; only a handle without
+        # FILE_SHARE_WRITE stops the archive from being overwritten.
+        handle = win32file.CreateFile(
+            str(archive),
+            win32con.GENERIC_READ,
+            win32con.FILE_SHARE_READ,
+            None,
+            win32con.OPEN_EXISTING,
+            0,
+            None,
+        )
+        try:
+            with pytest.raises(
+                BuildError, match="Could not write the archive"
+            ) as exc_info:
+                UVBuilder(config).build()
+        finally:
+            handle.Close()
+
+        assert str(archive) in str(exc_info.value)
