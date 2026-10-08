@@ -129,7 +129,10 @@ def _build_pyretort_section(project_path: Path, source_subdir: Path) -> Table:
         )
     )
     pyretort_config.add(
-        tomlkit.comment("Must be true: standalone mode (false) is not supported yet")
+        tomlkit.comment(
+            "true: install the project as a package and run python -m <module>; "
+            "false: copy sources and run main_file as a script"
+        )
     )
     pyretort_config["install_as_package"] = INSTALL_AS_PACKAGE_DEFAULT
 

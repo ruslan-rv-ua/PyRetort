@@ -15,34 +15,38 @@ BUILD_DIR_DEFAULT = "build"
 # directory for final distribution packages
 DIST_DIR_DEFAULT = "dist"
 
-# Default blacklist of file patterns to exclude from application distribution.
-# These patterns represent files and directories that should not be included in the final
-# built application to reduce size and avoid including unnecessary or sensitive files.
-# Used during the build process to filter out unwanted artifacts when packaging the application.
-# Includes: bytecode, virtual environments, version control, IDE settings, test artifacts,
-# build outputs, and other common development-related files.
+# Entries of the project root that the standalone build leaves out of the copy
+# of the sources: PyRetort's own folders, virtual environments and CI files.
+# They are skipped only directly in the project root (the copy starts there when
+# project_source_subdir is "."), so a folder with the same name deeper in the
+# tree, such as ui/dist/ of a built frontend, is copied.
+PROJECT_ROOT_EXCLUDES = [
+    BUILD_DIR_DEFAULT,
+    DIST_DIR_DEFAULT,
+    DOWNLOAD_DIR_DEFAULT,
+    "venv",
+    "env",
+    "ci",
+]
+
+# Names that the standalone build leaves out of the copy of the sources at any
+# depth: bytecode, version control, IDE settings, test and tool caches, lock
+# files and other development files. A name is compared with every pattern
+# through fnmatch, like shutil.ignore_patterns does, so the match is
+# case-insensitive on Windows and a pattern cannot name a path.
 DEFAULT_BLACKLIST = [
     # === Python artifacts ===
     "*.pyc",
     "*.pyo",
-    "*.pyd",
     "__pycache__",
-    "*.so",
-    "*.dll",
-    "*.dylib",
     "*.egg-info",
     "*.egg",
     ".eggs",
     "*.spec",  # PyInstaller
     # === Virtual environments ===
     ".venv",
-    "venv",
-    "env",
-    "ENV",
     ".env",
     # === Build outputs ===
-    "build",
-    "dist",
     "pip-wheel-metadata",
     # === Version control ===
     ".git",
@@ -63,6 +67,7 @@ DEFAULT_BLACKLIST = [
     "*.sublime-project",
     ".emacs.d",
     # === Testing ===
+    "tests",
     ".pytest_cache",
     ".coverage",
     ".coverage.*",
@@ -79,8 +84,7 @@ DEFAULT_BLACKLIST = [
     # === OS files ===
     ".DS_Store",
     "Thumbs.db",
-    "desktop.ini",  # Windows is case-insensitive
-    "Icon?",
+    "desktop.ini",
     ".spotlight-V100",
     ".Trash-*",
     # === Dependency locks ===
@@ -99,12 +103,10 @@ DEFAULT_BLACKLIST = [
     "azure-pipelines.yml",
     "Jenkinsfile",
     "buildkite.yml",
-    "ci",
     # === Docker ===
     "Dockerfile",
     "docker-compose.yml",
     "docker-compose.*.yml",
-    "docker/*",
     # === Node.js ===
     "node_modules",
     "npm-debug.log",
@@ -112,8 +114,6 @@ DEFAULT_BLACKLIST = [
     # === Java/Maven/Gradle ===
     ".m2",
     ".gradle",
-    # === Documentation ===
-    "docs/_build",
     # === Misc ===
     "*.log",
     "*.orig",

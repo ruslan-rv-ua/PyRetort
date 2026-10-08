@@ -386,7 +386,10 @@ class TestInitCommandEntryPoint:
 
         assert result.exit_code == 0, result.output
         content = pyproject.read_text(encoding="utf-8")
-        assert "Must be true: standalone mode (false) is not supported yet" in content
+        assert (
+            "true: install the project as a package and run python -m <module>; "
+            "false: copy sources and run main_file as a script"
+        ) in content
         assert "Used only when install_as_package = false; ignored otherwise" in content
 
 

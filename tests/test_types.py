@@ -266,6 +266,26 @@ class TestBuildConfig:
         )
         assert config.show_console_window is False
 
+    def test_standalone_mode_requires_main_file(self) -> None:
+        """Test that install_as_package=False without a main file is rejected."""
+        with pytest.raises(
+            ValueError,
+            match=(
+                "Standalone mode \\(install_as_package = false\\) requires "
+                "'main_file' in \\[tool.pyretort\\]"
+            ),
+        ):
+            BuildConfig(
+                project_dir_abs_path=Path("."),
+                project_name="test",
+                project_version="1.0.0",
+                project_source_subdir_rel_path=Path("."),
+                install_as_package=False,
+                python_version="3.13.0",
+                python_architecture=PythonArchitecture.AMD64,
+                create_dist_zip_file=False,
+            )
+
     def test_main_module_is_last_component_of_source_subdir(self) -> None:
         """Test that main_module is the package directory named by the subdir."""
         config = BuildConfig(
@@ -1157,8 +1177,46 @@ class TestBuildConfigFromPyprojectToml:
 
         assert getattr(config, missing_key) is expected
 
-    def test_from_pyproject_rejects_standalone_mode(self, tmp_path: Path) -> None:
-        """Test that install_as_package = false is refused until task 12 lands."""
+    def test_from_pyproject_accepts_standalone_mode(self, tmp_path: Path) -> None:
+        """Test that standalone mode needs neither [build-system] nor __main__.py."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "requires-python": ">=3.13",
+                "dependencies": ["six"],
+            },
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src",
+                    "main_file": "main.py",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": False,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        source_dir = tmp_path / "src"
+        source_dir.mkdir(parents=True, exist_ok=True)
+        (source_dir / "main.py").write_text("print('hello')")
+
+        config = BuildConfig.from_pyproject_toml(pyproject_path)
+
+        assert config.install_as_package is False
+        assert config.main_file_rel_path == Path("main.py")
+        assert config.build_backend is None
+
+    def test_from_pyproject_requires_main_file_in_standalone_mode(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that standalone mode without main_file is rejected."""
         import tomli_w
 
         data = {
@@ -1167,7 +1225,6 @@ class TestBuildConfigFromPyprojectToml:
                 "version": "0.1.0",
                 "dependencies": [],
             },
-            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
             "tool": {
                 "pyretort": {
                     "project_source_subdir": "src",
@@ -1184,9 +1241,159 @@ class TestBuildConfigFromPyprojectToml:
 
         source_dir = tmp_path / "src"
         source_dir.mkdir(parents=True, exist_ok=True)
+        (source_dir / "main.py").write_text("print('hello')")
 
         with pytest.raises(
             ValueError,
-            match="install_as_package = false \\(standalone mode\\) is not supported yet",
+            match=(
+                "Standalone mode \\(install_as_package = false\\) requires "
+                "'main_file' in \\[tool.pyretort\\]"
+            ),
+        ):
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_from_pyproject_rejects_main_file_outside_source_dir_in_standalone_mode(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that main_file may not leave project_source_subdir, even if it exists."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dependencies": [],
+            },
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src",
+                    "main_file": "../main.py",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": False,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        (tmp_path / "src").mkdir()
+        (tmp_path / "main.py").write_text("print('hello')")
+
+        with pytest.raises(
+            ValueError,
+            match="Main file must be inside the source subdirectory: \\.\\./main\\.py",
+        ):
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_from_pyproject_rejects_dynamic_dependencies_in_standalone_mode(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that dependencies a backend would compute cannot be installed."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dynamic": ["dependencies"],
+            },
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": ".",
+                    "main_file": "main.py",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": False,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+        (tmp_path / "main.py").write_text("print('hello')")
+
+        with pytest.raises(
+            ValueError,
+            match=(
+                "Standalone mode installs \\[project\\].dependencies; 'dependencies' "
+                "in \\[project\\].dynamic is not supported"
+            ),
+        ):
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_from_pyproject_rejects_python_version_outside_requires_python_in_standalone_mode(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that the embedded Python must satisfy requires-python, which uv skips."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "requires-python": ">=3.14",
+                "dependencies": [],
+            },
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": ".",
+                    "main_file": "main.py",
+                    "python_version": "3.13.9",
+                    "python_architecture": "amd64",
+                    "install_as_package": False,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+        (tmp_path / "main.py").write_text("print('hello')")
+
+        with pytest.raises(
+            ValueError,
+            match=(
+                "python_version 3.13.9 does not satisfy requires-python '>=3.14' "
+                "in \\[project\\]"
+            ),
+        ):
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_from_pyproject_rejects_invalid_requires_python_in_standalone_mode(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that a requires-python that is no version specifier is reported."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "requires-python": "3.13 or later",
+                "dependencies": [],
+            },
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": ".",
+                    "main_file": "main.py",
+                    "python_version": "3.13.9",
+                    "python_architecture": "amd64",
+                    "install_as_package": False,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+        (tmp_path / "main.py").write_text("print('hello')")
+
+        with pytest.raises(
+            ValueError,
+            match="Invalid requires-python in \\[project\\]: '3.13 or later'",
         ):
             BuildConfig.from_pyproject_toml(pyproject_path)

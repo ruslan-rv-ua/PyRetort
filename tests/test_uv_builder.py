@@ -36,19 +36,45 @@ def make_config(
     python_version: str = "3.13.0",
     architecture: PythonArchitecture = PythonArchitecture.AMD64,
     create_dist_zip_file: bool = False,
+    install_as_package: bool = True,
+    main_file: str | None = None,
 ) -> BuildConfig:
-    """Create a package-mode BuildConfig rooted at project_dir."""
+    """Create a BuildConfig rooted at project_dir, in package mode by default."""
     return BuildConfig(
         project_dir_abs_path=project_dir,
         project_name="My App",
         project_version="0.1.0",
         project_source_subdir_rel_path=Path(source_subdir),
+        main_file_rel_path=None if main_file is None else Path(main_file),
+        install_as_package=install_as_package,
         python_version=python_version,
         python_architecture=architecture,
-        build_backend="uv_build",
+        build_backend="uv_build" if install_as_package else None,
         icon_file_rel_path=None if icon_file is None else Path(icon_file),
         create_dist_zip_file=create_dist_zip_file,
     )
+
+
+def make_standalone_config(
+    project_dir: Path, main_file: str = "main.py", source_subdir: str = "."
+) -> BuildConfig:
+    """Create a standalone-mode BuildConfig rooted at project_dir."""
+    return make_config(
+        project_dir, source_subdir, install_as_package=False, main_file=main_file
+    )
+
+
+def touch(root: Path, *relative_paths: str) -> None:
+    """Create empty files under root, together with their directories."""
+    for relative_path in relative_paths:
+        file = root / relative_path
+        file.parent.mkdir(parents=True, exist_ok=True)
+        file.write_bytes(b"")
+
+
+# Where the standalone build of make_standalone_config puts the sources,
+# relative to the project directory.
+STANDALONE_APP_DIR = Path("build") / "my-app-0.1.0-amd64" / "my-app" / "app"
 
 
 @pytest.mark.usefixtures("externals")
@@ -196,6 +222,134 @@ class TestUVBuilderArchive:
 
         assert result.app_dir == tmp_path / "build" / "my-app-0.1.0-amd64"
         assert result.archive == tmp_path / "dist" / "my-app-0.1.0-amd64.zip"
+
+
+@pytest.mark.usefixtures("externals", "generate_exe")
+class TestUVBuilderStandalone:
+    """Tests for the standalone build: copied sources, dependencies, launcher."""
+
+    def test_standalone_build_copies_sources_into_app_dir(self, tmp_path: Path) -> None:
+        """Test that scripts, binaries, icons and a nested dist/ land in <name>/app/."""
+        files = [
+            "main.py",
+            "lib/native.dll",
+            "lib/ext.pyd",
+            "icons/app.png",
+            "ui/dist/index.html",
+        ]
+        touch(tmp_path, *files)
+        config = make_standalone_config(tmp_path)
+
+        UVBuilder(config).build()
+
+        app_dir = tmp_path / STANDALONE_APP_DIR
+        for file in files:
+            assert (app_dir / file).is_file(), file
+
+    def test_standalone_build_skips_junk_at_any_depth(self, tmp_path: Path) -> None:
+        """Test that caches, virtual environments and tests are left out everywhere."""
+        junk = ["__pycache__", "pkg/__pycache__", ".venv", "tests", "pkg/tests"]
+        touch(tmp_path, "main.py", "pkg/mod.py", *(f"{d}/file.py" for d in junk))
+        config = make_standalone_config(tmp_path)
+
+        UVBuilder(config).build()
+
+        app_dir = tmp_path / STANDALONE_APP_DIR
+        assert (app_dir / "pkg" / "mod.py").is_file()
+        for directory in junk:
+            assert not (app_dir / directory).exists(), directory
+
+    def test_standalone_build_skips_pyretort_dirs_in_project_root(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that build/, dist/, downloads/ and venv/ of the project are left out."""
+        excluded = ["build", "dist", "downloads", "venv"]
+        touch(tmp_path, "main.py", *(f"{d}/leftover.txt" for d in excluded))
+        config = make_standalone_config(tmp_path)
+
+        UVBuilder(config).build()
+
+        app_dir = tmp_path / STANDALONE_APP_DIR
+        assert (app_dir / "main.py").is_file()
+        for directory in excluded:
+            assert not (app_dir / directory).exists(), directory
+
+    def test_standalone_build_installs_only_dependencies(
+        self, tmp_path: Path, externals: BuildExternals
+    ) -> None:
+        """Test that uv installs from pyproject.toml with -r, not the project itself."""
+        touch(tmp_path, "main.py")
+        config = make_standalone_config(tmp_path)
+
+        UVBuilder(config).build()
+
+        python_exe = tmp_path / "build" / "my-app-0.1.0-amd64" / "my-app" / "python.exe"
+        externals.run.assert_called_once()
+        assert externals.run.call_args.args[0] == [
+            "uv",
+            "pip",
+            "install",
+            "--python",
+            str(python_exe),
+            "-r",
+            str(tmp_path / "pyproject.toml"),
+        ]
+
+    @pytest.mark.parametrize(
+        ("main_file", "expected_line"),
+        [("main.py", "app"), ("scripts/run.py", "app\\scripts")],
+    )
+    def test_standalone_build_adds_main_file_dir_to_pth(
+        self, tmp_path: Path, main_file: str, expected_line: str
+    ) -> None:
+        """Test that ._pth lists the script's folder, which isolated mode drops."""
+        touch(tmp_path, main_file)
+        config = make_standalone_config(tmp_path, main_file=main_file)
+
+        UVBuilder(config).build()
+
+        pth = tmp_path / "build" / "my-app-0.1.0-amd64" / "my-app" / "python313._pth"
+        assert expected_line in pth.read_text(encoding="utf-8").splitlines()
+
+    def test_standalone_launcher_runs_main_file_as_script(
+        self, tmp_path: Path, generate_exe: MagicMock
+    ) -> None:
+        """Test that the launcher runs the copied main_file with the embedded Python."""
+        touch(tmp_path, "main.py")
+        config = make_standalone_config(tmp_path)
+
+        UVBuilder(config).build()
+
+        command = generate_exe.call_args.kwargs["command"]
+        assert (
+            command
+            == '"{EXE_DIR}\\my-app\\python.exe" "{EXE_DIR}\\my-app\\app\\main.py"'
+        )
+
+    def test_standalone_build_reports_copy_failure(self, tmp_path: Path) -> None:
+        """Test that a source file another program holds open fails with BuildError."""
+        touch(tmp_path, "main.py")
+        config = make_standalone_config(tmp_path)
+        # A handle without any sharing stops the file from being read.
+        handle = win32file.CreateFile(
+            str(tmp_path / "main.py"),
+            win32con.GENERIC_READ,
+            0,
+            None,
+            win32con.OPEN_EXISTING,
+            0,
+            None,
+        )
+        try:
+            with pytest.raises(
+                BuildError, match="Could not copy the sources"
+            ) as exc_info:
+                UVBuilder(config).build()
+        finally:
+            handle.Close()
+
+        assert str(tmp_path / STANDALONE_APP_DIR) in str(exc_info.value)
+        assert "main.py" in str(exc_info.value)
 
 
 @pytest.mark.usefixtures("externals")

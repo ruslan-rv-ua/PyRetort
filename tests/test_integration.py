@@ -128,13 +128,13 @@ class TestPydistManagerIntegration:
 
         manager._verify_embedded_python()
 
-        manager.patch_pth_file("3.13.0", "src/myapp")
+        manager.patch_pth_file("3.13.0", extra_paths=["app"])
 
         pth_file = pydist_path / "python313._pth"
         assert pth_file.exists()
         content = pth_file.read_text()
         assert "python313.zip" in content
-        assert "src/myapp" in content
+        assert "app" in content.splitlines()
 
 
 @pytest.mark.slow

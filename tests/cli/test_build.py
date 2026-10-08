@@ -207,10 +207,10 @@ class TestBuildCommand:
         mock_builder_class.assert_called_once()
         mock_builder_instance.build.assert_called_once()
 
-    def test_build_rejects_standalone_mode_without_traceback(
+    def test_build_reports_missing_main_file_without_traceback(
         self, tmp_path: Path
     ) -> None:
-        """Test that install_as_package = false fails cleanly and creates nothing."""
+        """Test that standalone mode without main_file fails cleanly, creating nothing."""
         pyproject = tmp_path / "pyproject.toml"
         data = {
             "project": {
@@ -218,11 +218,9 @@ class TestBuildCommand:
                 "version": "0.1.0",
                 "dependencies": [],
             },
-            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
             "tool": {
                 "pyretort": {
                     "project_source_subdir": "src",
-                    "main_file": "main.py",
                     "python_version": "3.13.0",
                     "python_architecture": "amd64",
                     "install_as_package": False,
@@ -238,7 +236,10 @@ class TestBuildCommand:
         result = runner.invoke(app, ["build", "-p", str(pyproject)])
 
         assert result.exit_code == 1
-        assert "not supported yet" in result.output
+        assert (
+            "Standalone mode (install_as_package = false) requires 'main_file' "
+            "in [tool.pyretort]"
+        ) in result.output
         assert "Traceback" not in result.output
         assert not (tmp_path / "build").exists()
         assert not (tmp_path / "downloads").exists()
