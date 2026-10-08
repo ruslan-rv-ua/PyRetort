@@ -19,6 +19,7 @@ def make_config(
     source_subdir: str,
     icon_file: str | None = None,
     python_version: str = "3.13.0",
+    architecture: PythonArchitecture = PythonArchitecture.AMD64,
 ) -> BuildConfig:
     """Create a package-mode BuildConfig rooted at project_dir."""
     return BuildConfig(
@@ -28,7 +29,7 @@ def make_config(
         project_version="0.1.0",
         project_source_subdir_rel_path=Path(source_subdir),
         python_version=python_version,
-        python_architecture=PythonArchitecture.AMD64,
+        python_architecture=architecture,
         build_backend="uv_build",
         icon_file_rel_path=None if icon_file is None else Path(icon_file),
         create_dist_zip_file=False,
@@ -66,6 +67,19 @@ class TestUVBuilderLauncher:
 
         icon_file = generate_exe.call_args.kwargs["icon_file"]
         assert icon_file == project_dir / "assets" / "app.ico"
+
+    def test_build_uses_launcher_for_python_architecture(
+        self, tmp_path: Path, generate_exe: MagicMock
+    ) -> None:
+        """Test that the launcher has the architecture of the embedded Python."""
+        config = make_config(
+            tmp_path, "src/my_pkg", architecture=PythonArchitecture.WIN32
+        )
+
+        UVBuilder(config).build()
+
+        architecture = generate_exe.call_args.kwargs["architecture"]
+        assert architecture == PythonArchitecture.WIN32
 
 
 @pytest.mark.usefixtures("externals", "generate_exe")
@@ -148,7 +162,7 @@ class TestUVBuilderFailures:
 
     def test_build_turns_long_command_into_build_error(self, tmp_path: Path) -> None:
         """Test that a module name pushing the launcher command over the limit fails."""
-        config = make_config(tmp_path, "src/" + "m" * 250)
+        config = make_config(tmp_path, "src/" + "m" * 1100)
 
-        with pytest.raises(BuildError, match="the limit is 259"):
+        with pytest.raises(BuildError, match="the limit is 1023"):
             UVBuilder(config).build()

@@ -20,6 +20,7 @@ jobs:
           python-version: "3.13"
           enable-cache: true
       - run: uv sync --locked
+      - run: uv run --group launcher python launcher/build.py --check
       - run: uv run ruff check src tests
       - run: uv run ruff format --check src tests
       - run: uv run mypy src

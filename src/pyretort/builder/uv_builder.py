@@ -73,6 +73,7 @@ class UVBuilder(BaseBuilder):
                 command=command_str,
                 icon_file=self.config.icon_file_abs_path,
                 show_console=self.config.show_console_window,
+                architecture=self.config.python_architecture,
             )
         except ValueError as e:
             raise BuildError(str(e)) from e
