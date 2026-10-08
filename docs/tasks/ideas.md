@@ -1,6 +1,6 @@
 # Ідеї
 
-Ідеї для PyRetort, для яких ще немає задачі. Розділ — одна ідея, заголовок розділу — її slug, тож посилання на ідею має вигляд `ideas.md#<slug>`.
+Ідеї для PyRetort, для яких ще немає задачі. Розділ — одна ідея, заголовок розділу — її slug, тож посилання на ідею має вигляд `ideas.md#<slug>`. Коли яку ідею брати в роботу, каже [план версій](README.md#план-версій); нову ідею одразу вписують туди.
 
 **Slug** — малі латинські літери, цифри й дефіси. Перше слово — команда чи частина PyRetort, якої стосується ідея: `build`, `check`, `cleanup`, `init`… Розділи впорядковано за slug, тож ідеї однієї команди стоять поруч.
 
@@ -24,7 +24,7 @@
 
 ## check-python-version-exists
 
-Перевірка, що обрана `python_version` існує на python.org, під час `check`.
+Перевірка під час `check`, що для обраної `python_version` на python.org є вбудовуваний архів: у security-релізів його немає, і збірка падає вже на завантаженні. Тим самим списком версій `init` може обирати версію з архівом, що задовольняє `requires-python` (друга половина [init-respects-requires-python](#init-respects-requires-python)).
 
 ## cleanup-dry-run
 
@@ -40,4 +40,4 @@
 
 ## init-respects-requires-python
 
-`init` пише в `python_version` версію Python, на якому працює PyRetort, а `uv init` пише в `requires-python` нижню межу за версією свого Python. Коли вони розходяться (наприклад, PyRetort на 3.13, а `requires-python = ">=3.14"`), `check` у standalone-режимі падає одразу після `init`. Попереджати про це в `init` або брати версію, що задовольняє `requires-python`.
+`init` пише в `python_version` версію Python, на якому працює PyRetort, а `uv init` пише в `requires-python` нижню межу за версією свого Python. Коли вони розходяться (наприклад, PyRetort на 3.13, а `requires-python = ">=3.14"`), `check` у standalone-режимі падає одразу після `init`. Попереджати про це в `init`; брати версію, що задовольняє `requires-python`, — частина [check-python-version-exists](#check-python-version-exists), бо для цього потрібен список версій із python.org.
