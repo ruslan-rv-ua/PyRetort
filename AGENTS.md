@@ -55,6 +55,23 @@ When making commits, follow the [Conventional Commits](https://www.conventionalc
 
 Always use lowercase for types and scopes. Keep descriptions concise but descriptive.
 
+## Гілки: git flow
+
+Гілки ведуться за git flow; інструмент — git-flow-next (`git flow version`).
+
+- `main` — лише випущені версії: у неї потрапляють тільки злиття релізів і хотфіксів з анотованим тегом `vX.Y.Z`. Напряму в `main` не комітити.
+- `develop` — інтеграційна гілка і гілка за замовчуванням на GitHub. CI запускається на push у `develop` і `main`.
+- Будь-яка зміна, навіть документація чи дрібний фікс, робиться у feature-гілці від `develop`: `git flow feature start <назва>`. Для задачі з `docs/tasks/` назва — ім'я файлу задачі без `.md`. Працювати в основному checkout, не у worktree.
+- Злиття: `git flow feature finish --no-ff --no-push <назва>`, потім `git push origin develop` — лише на прохання користувача.
+- Реліз: `git flow release start vX.Y.Z` → коміт `chore(release): vX.Y.Z` → `git flow release finish --no-ff --no-push -m "PyRetort X.Y.Z" vX.Y.Z`. Finish зливає реліз у `main`, ставить анотований тег із назви релізу і підтягує `main` у `develop`. Префікс `v` у назві релізу дає тег `vX.Y.Z`. Push (`git push origin main develop --follow-tags`) — лише з дозволу користувача.
+- Виправлення випущеної версії: `git flow hotfix start vX.Y.Z` від `main`, завершення так само, як у релізу.
+- Налаштування git flow живуть у `.git/config`, тож новий клон треба ініціалізувати саме в такому порядку:
+  ```
+  git branch main origin/main
+  git flow init --defaults
+  ```
+  Без першої команди `init` створить локальну `main` від `develop`.
+
 ## Pytest
 
 Use pytest for writing and running unit tests in this Python project. Ensure all new code includes appropriate tests and that existing tests pass before committing changes.
