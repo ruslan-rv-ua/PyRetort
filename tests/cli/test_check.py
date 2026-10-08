@@ -152,8 +152,8 @@ class TestCheckCommand:
         assert result.exit_code == 0, result.output
         assert f"Configuration at {valid_pyproject_toml} is valid." in result.output
 
-    def test_check_rejects_standalone_mode(self, tmp_path: Path) -> None:
-        """Test that install_as_package = false fails with a clear message."""
+    def test_check_accepts_standalone_mode(self, tmp_path: Path) -> None:
+        """Test that a script project without [build-system] passes check."""
         pyproject = tmp_path / "pyproject.toml"
         data = {
             "project": {
@@ -161,31 +161,25 @@ class TestCheckCommand:
                 "version": "0.1.0",
                 "dependencies": [],
             },
-            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
             "tool": {
                 "pyretort": {
-                    "project_source_subdir": "src",
+                    "project_source_subdir": ".",
                     "main_file": "main.py",
                     "python_version": "3.13.0",
                     "python_architecture": "amd64",
                     "install_as_package": False,
-                    "show_console_window": False,
+                    "show_console_window": True,
                     "create_dist_zip_file": True,
                 }
             },
         }
         pyproject.write_bytes(tomli_w.dumps(data).encode())
-        (tmp_path / "src").mkdir()
-        (tmp_path / "src" / "main.py").write_text("print('hello')")
+        (tmp_path / "main.py").write_text("print('hello')")
 
         result = runner.invoke(app, ["check", "-p", str(pyproject)])
 
-        assert result.exit_code == 1
-        assert "not supported yet" in result.output
-        assert "Traceback" not in result.output
-        assert not (tmp_path / "build").exists()
-        assert not (tmp_path / "downloads").exists()
-        assert not (tmp_path / "dist").exists()
+        assert result.exit_code == 0, result.output
+        assert f"Configuration at {pyproject} is valid." in result.output
 
 
 class TestCheckCommandEdgeCases:

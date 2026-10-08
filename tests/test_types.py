@@ -50,7 +50,6 @@ class TestBuildConfig:
     def test_python_version_validation_valid_311(self) -> None:
         """Test that Python 3.11.x passes validation."""
         config = BuildConfig(
-            build_hash="test123",
             project_dir_abs_path=Path("."),
             project_name="test",
             project_version="1.0.0",
@@ -65,7 +64,6 @@ class TestBuildConfig:
     def test_python_version_validation_valid_313(self) -> None:
         """Test that Python 3.13.x passes validation."""
         config = BuildConfig(
-            build_hash="test123",
             project_dir_abs_path=Path("."),
             project_name="test",
             project_version="1.0.0",
@@ -83,7 +81,6 @@ class TestBuildConfig:
             ValueError, match=f"Python version must be >= {MIN_PYTHON_VERSION}"
         ):
             BuildConfig(
-                build_hash="test123",
                 project_dir_abs_path=Path("."),
                 project_name="test",
                 project_version="1.0.0",
@@ -100,7 +97,6 @@ class TestBuildConfig:
             ValueError, match=f"Python version must be >= {MIN_PYTHON_VERSION}"
         ):
             BuildConfig(
-                build_hash="test123",
                 project_dir_abs_path=Path("."),
                 project_name="test",
                 project_version="1.0.0",
@@ -115,7 +111,6 @@ class TestBuildConfig:
         """Test that invalid version format fails validation."""
         with pytest.raises(ValueError, match="Invalid Python version format"):
             BuildConfig(
-                build_hash="test123",
                 project_dir_abs_path=Path("."),
                 project_name="test",
                 project_version="1.0.0",
@@ -129,7 +124,6 @@ class TestBuildConfig:
     def test_python_version_short_311(self) -> None:
         """Test python_version_short computed field for 3.11."""
         config = BuildConfig(
-            build_hash="test123",
             project_dir_abs_path=Path("."),
             project_name="test",
             project_version="1.0.0",
@@ -144,7 +138,6 @@ class TestBuildConfig:
     def test_python_version_short_313(self) -> None:
         """Test python_version_short computed field for 3.13."""
         config = BuildConfig(
-            build_hash="test123",
             project_dir_abs_path=Path("."),
             project_name="test",
             project_version="1.0.0",
@@ -159,7 +152,6 @@ class TestBuildConfig:
     def test_project_name_slug_underscore(self) -> None:
         """Test project_name_slug_underscore computed field."""
         config = BuildConfig(
-            build_hash="test123",
             project_dir_abs_path=Path("."),
             project_name="My Test Project",
             project_version="1.0.0",
@@ -174,7 +166,6 @@ class TestBuildConfig:
     def test_project_name_slug_dash(self) -> None:
         """Test project_name_slug_dash computed field."""
         config = BuildConfig(
-            build_hash="test123",
             project_dir_abs_path=Path("."),
             project_name="My Test Project",
             project_version="1.0.0",
@@ -189,7 +180,6 @@ class TestBuildConfig:
     def test_dist_name(self) -> None:
         """Test dist_name computed field."""
         config = BuildConfig(
-            build_hash="test123",
             project_dir_abs_path=Path("."),
             project_name="My App",
             project_version="2.1.0",
@@ -204,7 +194,6 @@ class TestBuildConfig:
     def test_dist_name_with_win32(self) -> None:
         """Test dist_name with win32 architecture."""
         config = BuildConfig(
-            build_hash="test123",
             project_dir_abs_path=Path("."),
             project_name="test-app",
             project_version="1.0.0",
@@ -219,7 +208,6 @@ class TestBuildConfig:
     def test_optional_fields_default_none(self) -> None:
         """Test that optional fields default to None."""
         config = BuildConfig(
-            build_hash="test123",
             project_dir_abs_path=Path("."),
             project_name="test",
             project_version="1.0.0",
@@ -235,7 +223,6 @@ class TestBuildConfig:
     def test_optional_fields_with_values(self) -> None:
         """Test optional fields when provided."""
         config = BuildConfig(
-            build_hash="test123",
             project_dir_abs_path=Path("."),
             project_name="test",
             project_version="1.0.0",
@@ -254,7 +241,6 @@ class TestBuildConfig:
     def test_install_as_package_default(self) -> None:
         """Test install_as_package default value."""
         config = BuildConfig(
-            build_hash="test123",
             project_dir_abs_path=Path("."),
             project_name="test",
             project_version="1.0.0",
@@ -269,7 +255,6 @@ class TestBuildConfig:
     def test_show_console_window_default(self) -> None:
         """Test show_console_window default value."""
         config = BuildConfig(
-            build_hash="test123",
             project_dir_abs_path=Path("."),
             project_name="test",
             project_version="1.0.0",
@@ -281,10 +266,29 @@ class TestBuildConfig:
         )
         assert config.show_console_window is False
 
+    def test_standalone_mode_requires_main_file(self) -> None:
+        """Test that install_as_package=False without a main file is rejected."""
+        with pytest.raises(
+            ValueError,
+            match=(
+                "Standalone mode \\(install_as_package = false\\) requires "
+                "'main_file' in \\[tool.pyretort\\]"
+            ),
+        ):
+            BuildConfig(
+                project_dir_abs_path=Path("."),
+                project_name="test",
+                project_version="1.0.0",
+                project_source_subdir_rel_path=Path("."),
+                install_as_package=False,
+                python_version="3.13.0",
+                python_architecture=PythonArchitecture.AMD64,
+                create_dist_zip_file=False,
+            )
+
     def test_main_module_is_last_component_of_source_subdir(self) -> None:
         """Test that main_module is the package directory named by the subdir."""
         config = BuildConfig(
-            build_hash="test123",
             project_dir_abs_path=Path("."),
             project_name="My App",
             project_version="1.0.0",
@@ -299,7 +303,6 @@ class TestBuildConfig:
     def test_main_module_falls_back_to_project_slug_for_root_subdir(self) -> None:
         """Test that main_module is the project slug when the subdir is '.'."""
         config = BuildConfig(
-            build_hash="test123",
             project_dir_abs_path=Path("."),
             project_name="My App",
             project_version="1.0.0",
@@ -350,71 +353,6 @@ class TestBuildConfigFromPyprojectToml:
         """Test that from_pyproject_toml accepts string paths."""
         config = BuildConfig.from_pyproject_toml(str(valid_pyproject_toml))
         assert config.project_name == "test-app"
-
-    def test_build_hash_is_generated(self, valid_pyproject_toml: Path) -> None:
-        """Test that build_hash is properly generated."""
-        config = BuildConfig.from_pyproject_toml(valid_pyproject_toml)
-        assert config.build_hash is not None
-        assert len(config.build_hash) == 64  # SHA256 hex digest length
-
-    def test_build_hash_changes_with_dependencies(self, tmp_path: Path) -> None:
-        """Test that build_hash changes when dependencies change."""
-        import tomli_w
-
-        data1 = {
-            "project": {
-                "name": "test-app",
-                "version": "0.1.0",
-                "dependencies": ["httpx>=0.27.0"],
-            },
-            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
-            "tool": {
-                "pyretort": {
-                    "project_source_subdir": "src",
-                    "python_version": "3.13.0",
-                    "python_architecture": "amd64",
-                    "install_as_package": True,
-                    "show_console_window": False,
-                    "create_dist_zip_file": True,
-                }
-            },
-        }
-
-        data2 = {
-            "project": {
-                "name": "test-app",
-                "version": "0.1.0",
-                "dependencies": ["httpx>=0.27.0", "requests>=2.0.0"],
-            },
-            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
-            "tool": {
-                "pyretort": {
-                    "project_source_subdir": "src",
-                    "python_version": "3.13.0",
-                    "python_architecture": "amd64",
-                    "install_as_package": True,
-                    "show_console_window": False,
-                    "create_dist_zip_file": True,
-                }
-            },
-        }
-
-        p1 = tmp_path / "proj1" / "pyproject.toml"
-        p1.parent.mkdir()
-        (p1.parent / "src").mkdir()
-        (p1.parent / "src" / "__main__.py").write_text("")
-        p1.write_bytes(tomli_w.dumps(data1).encode())
-
-        p2 = tmp_path / "proj2" / "pyproject.toml"
-        p2.parent.mkdir()
-        (p2.parent / "src").mkdir()
-        (p2.parent / "src" / "__main__.py").write_text("")
-        p2.write_bytes(tomli_w.dumps(data2).encode())
-
-        config1 = BuildConfig.from_pyproject_toml(p1)
-        config2 = BuildConfig.from_pyproject_toml(p2)
-
-        assert config1.build_hash != config2.build_hash
 
     def test_missing_project_section(self, tmp_path: Path) -> None:
         """Test that ValueError is raised when [project] section is missing."""
@@ -1239,8 +1177,46 @@ class TestBuildConfigFromPyprojectToml:
 
         assert getattr(config, missing_key) is expected
 
-    def test_from_pyproject_rejects_standalone_mode(self, tmp_path: Path) -> None:
-        """Test that install_as_package = false is refused until task 12 lands."""
+    def test_from_pyproject_accepts_standalone_mode(self, tmp_path: Path) -> None:
+        """Test that standalone mode needs neither [build-system] nor __main__.py."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "requires-python": ">=3.13",
+                "dependencies": ["six"],
+            },
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src",
+                    "main_file": "main.py",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": False,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        source_dir = tmp_path / "src"
+        source_dir.mkdir(parents=True, exist_ok=True)
+        (source_dir / "main.py").write_text("print('hello')")
+
+        config = BuildConfig.from_pyproject_toml(pyproject_path)
+
+        assert config.install_as_package is False
+        assert config.main_file_rel_path == Path("main.py")
+        assert config.build_backend is None
+
+    def test_from_pyproject_requires_main_file_in_standalone_mode(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that standalone mode without main_file is rejected."""
         import tomli_w
 
         data = {
@@ -1249,7 +1225,6 @@ class TestBuildConfigFromPyprojectToml:
                 "version": "0.1.0",
                 "dependencies": [],
             },
-            "build-system": {"requires": ["uv_build"], "build-backend": "uv_build"},
             "tool": {
                 "pyretort": {
                     "project_source_subdir": "src",
@@ -1266,9 +1241,159 @@ class TestBuildConfigFromPyprojectToml:
 
         source_dir = tmp_path / "src"
         source_dir.mkdir(parents=True, exist_ok=True)
+        (source_dir / "main.py").write_text("print('hello')")
 
         with pytest.raises(
             ValueError,
-            match="install_as_package = false \\(standalone mode\\) is not supported yet",
+            match=(
+                "Standalone mode \\(install_as_package = false\\) requires "
+                "'main_file' in \\[tool.pyretort\\]"
+            ),
+        ):
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_from_pyproject_rejects_main_file_outside_source_dir_in_standalone_mode(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that main_file may not leave project_source_subdir, even if it exists."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dependencies": [],
+            },
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": "src",
+                    "main_file": "../main.py",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": False,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+
+        (tmp_path / "src").mkdir()
+        (tmp_path / "main.py").write_text("print('hello')")
+
+        with pytest.raises(
+            ValueError,
+            match="Main file must be inside the source subdirectory: \\.\\./main\\.py",
+        ):
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_from_pyproject_rejects_dynamic_dependencies_in_standalone_mode(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that dependencies a backend would compute cannot be installed."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "dynamic": ["dependencies"],
+            },
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": ".",
+                    "main_file": "main.py",
+                    "python_version": "3.13.0",
+                    "python_architecture": "amd64",
+                    "install_as_package": False,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+        (tmp_path / "main.py").write_text("print('hello')")
+
+        with pytest.raises(
+            ValueError,
+            match=(
+                "Standalone mode installs \\[project\\].dependencies; 'dependencies' "
+                "in \\[project\\].dynamic is not supported"
+            ),
+        ):
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_from_pyproject_rejects_python_version_outside_requires_python_in_standalone_mode(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that the embedded Python must satisfy requires-python, which uv skips."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "requires-python": ">=3.14",
+                "dependencies": [],
+            },
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": ".",
+                    "main_file": "main.py",
+                    "python_version": "3.13.9",
+                    "python_architecture": "amd64",
+                    "install_as_package": False,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+        (tmp_path / "main.py").write_text("print('hello')")
+
+        with pytest.raises(
+            ValueError,
+            match=(
+                "python_version 3.13.9 does not satisfy requires-python '>=3.14' "
+                "in \\[project\\]"
+            ),
+        ):
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+    def test_from_pyproject_rejects_invalid_requires_python_in_standalone_mode(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that a requires-python that is no version specifier is reported."""
+        import tomli_w
+
+        data = {
+            "project": {
+                "name": "test-app",
+                "version": "0.1.0",
+                "requires-python": "3.13 or later",
+                "dependencies": [],
+            },
+            "tool": {
+                "pyretort": {
+                    "project_source_subdir": ".",
+                    "main_file": "main.py",
+                    "python_version": "3.13.9",
+                    "python_architecture": "amd64",
+                    "install_as_package": False,
+                    "show_console_window": False,
+                    "create_dist_zip_file": True,
+                }
+            },
+        }
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+        (tmp_path / "main.py").write_text("print('hello')")
+
+        with pytest.raises(
+            ValueError,
+            match="Invalid requires-python in \\[project\\]: '3.13 or later'",
         ):
             BuildConfig.from_pyproject_toml(pyproject_path)

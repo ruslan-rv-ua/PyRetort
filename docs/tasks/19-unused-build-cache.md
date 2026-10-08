@@ -10,7 +10,7 @@
 
 Номери рядків — станом на коміт `c190f9a`.
 
-- Обидва з'явилися 28 жовтня 2025 як заготовка кешу збірки: `CacheManager` — у коміті `a1fb6a3`, `build_hash` — у `2933cee`. Кеш так і не підключили.
+- Обидва з'явилися 28 жовтня 2025: `CacheManager` — у коміті `a1fb6a3`, `build_hash` — у `2933cee`. У `a1fb6a3` команда `build` ще тримала в `downloads/python_<хеш>/` підготовлений embedded Python із залежностями і перевикористовувала його, а хеш рахувала через `hash_utils`; `build_hash` мав замінити той хеш, але його ніхто так і не прочитав. `fa94b10` того ж дня переписала `build` на `UVBuilder`, який збирає з нуля, і відтоді `CacheManager` теж ніхто не викликає.
 - `BuildConfig.build_hash` у [`src/pyretort/types.py`](../../src/pyretort/types.py):
   - обов'язкове поле (рядки 66-67);
   - `from_pyproject_toml` рахує його як SHA-256 від `python_version|python_architecture|відсортовані залежності` (рядки 293-295) і передає в модель (рядок 378);

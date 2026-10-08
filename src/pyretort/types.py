@@ -3,16 +3,22 @@ from __future__ import annotations
 import tomllib
 from dataclasses import dataclass
 from enum import StrEnum
-from hashlib import sha256
 from pathlib import Path
+from typing import Any
 
+from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.version import InvalidVersion, Version
-from pydantic import BaseModel, computed_field, field_validator
+from pydantic import BaseModel, computed_field, field_validator, model_validator
 from slugify import slugify
 
 from pyretort.constants import INSTALL_AS_PACKAGE_DEFAULT, SHOW_CONSOLE_DEFAULT
 
 MIN_PYTHON_VERSION = "3.11"
+
+STANDALONE_MAIN_FILE_REQUIRED = (
+    "Standalone mode (install_as_package = false) requires 'main_file' "
+    "in [tool.pyretort]"
+)
 
 
 class PythonArchitecture(StrEnum):
@@ -62,10 +68,48 @@ def launcher_entry_point(
     )
 
 
-class BuildConfig(BaseModel):
-    # build hash based on python version, architecture, dependencies
-    build_hash: str
+def _check_requires_python(requires_python: object, python_version: object) -> None:
+    """Raise ValueError unless python_version satisfies [project].requires-python.
 
+    A python_version that is no version at all is left to the model validator.
+    """
+    try:
+        specifier = SpecifierSet(str(requires_python))
+    except InvalidSpecifier:
+        raise ValueError(
+            f"Invalid requires-python in [project]: '{requires_python}'"
+        ) from None
+    try:
+        version = Version(str(python_version))
+    except InvalidVersion:
+        return
+    if not specifier.contains(version, prereleases=True):
+        raise ValueError(
+            f"python_version {python_version} does not satisfy requires-python "
+            f"'{requires_python}' in [project]"
+        )
+
+
+def _read_build_backend(data: dict[str, Any]) -> str:
+    """Return the build backend from [build-system], which package mode needs.
+
+    Any PEP 517 backend works with 'uv pip install', but an empty value would
+    make uv fall back to legacy setuptools.
+    """
+    build_system = data.get("build-system", {})
+    if not build_system:
+        raise ValueError("Missing [build-system] section in pyproject.toml")
+
+    if "build-backend" not in build_system:
+        raise ValueError("Missing 'build-backend' field in [build-system] section")
+
+    build_backend = build_system["build-backend"]
+    if not isinstance(build_backend, str) or not build_backend.strip():
+        raise ValueError("'build-backend' in [build-system] must be a non-empty string")
+    return build_backend
+
+
+class BuildConfig(BaseModel):
     # where the root of the project to be built is located
     project_dir_abs_path: Path
 
@@ -92,8 +136,9 @@ class BuildConfig(BaseModel):
     python_architecture: PythonArchitecture
 
     # PEP 517 build backend declared in [build-system]; informational only,
-    # the build runs 'uv pip install', which handles any backend
-    build_backend: str
+    # the build runs 'uv pip install', which handles any backend. None in
+    # standalone mode, which copies the sources instead of building them
+    build_backend: str | None = None
 
     # icon file path relative to project_dir (optional)
     icon_file_rel_path: Path | None = None
@@ -165,6 +210,13 @@ class BuildConfig(BaseModel):
             raise ValueError(f"Icon file must be relative: {v}")
 
         return v
+
+    @model_validator(mode="after")
+    def validate_main_file_in_standalone_mode(self) -> BuildConfig:
+        """Require the main file in standalone mode: the launcher runs it."""
+        if not self.install_as_package and self.main_file_rel_path is None:
+            raise ValueError(STANDALONE_MAIN_FILE_REQUIRED)
+        return self
 
     @computed_field  # type: ignore[prop-decorator]  # mypy: unsupported on @property
     @property
@@ -264,21 +316,22 @@ class BuildConfig(BaseModel):
             if field not in tool_pyretort:
                 raise ValueError(f"Missing '{field}' in [tool.pyretort] section")
 
-        # Validate [build-system] section
-        build_system = data.get("build-system", {})
-        if not build_system:
-            raise ValueError("Missing [build-system] section in pyproject.toml")
+        # The mode decides whether [build-system] is needed, so it comes first
+        install_as_package = tool_pyretort.get("install_as_package")
+        if install_as_package is not None and not isinstance(install_as_package, bool):
+            raise ValueError(
+                f"'install_as_package' must be a boolean, got {type(install_as_package).__name__}"
+            )
+        standalone = install_as_package is False
 
-        if "build-backend" not in build_system:
-            raise ValueError("Missing 'build-backend' field in [build-system] section")
+        # Package mode builds the project with uv, which needs a PEP 517
+        # backend; standalone mode copies the sources and never builds them
+        build_backend = None if standalone else _read_build_backend(data)
 
         # Determine project directory (parent of pyproject.toml)
         project_dir = pyproject_path.parent.absolute()
 
-        # Extract dependencies from project configuration
-        dependencies = project.get("dependencies", [])
-
-        # Get python version and architecture for hash calculation
+        # Get python version and architecture
         python_version = tool_pyretort.get("python_version")
         python_architecture_str = tool_pyretort.get("python_architecture")
         try:
@@ -290,10 +343,6 @@ class BuildConfig(BaseModel):
                 f"Valid values: {', '.join(valid)}"
             ) from e
 
-        # Calculate build_hash based on python version, architecture, and dependencies
-        hash_data = f"{python_version}|{python_architecture.value}|{'|'.join(sorted(dependencies))}"
-        build_hash = sha256(hash_data.encode()).hexdigest()
-
         # Validate source subdirectory
         source_subdir = Path(tool_pyretort.get("project_source_subdir"))
         if source_subdir.is_absolute():
@@ -304,15 +353,25 @@ class BuildConfig(BaseModel):
         if not full_source_path.is_dir():
             raise ValueError(f"Source path is not a directory: {full_source_path}")
 
-        # Validate main file if specified; only standalone mode runs it, so the
-        # file must exist only there, while package mode ignores it
+        # Validate main file: standalone mode runs it, so there it is required
+        # and must exist, while package mode ignores it
         main_file_rel_path = None
+        if standalone and "main_file" not in tool_pyretort:
+            raise ValueError(STANDALONE_MAIN_FILE_REQUIRED)
         if "main_file" in tool_pyretort:
             main_file_rel_path = Path(tool_pyretort["main_file"])
             if main_file_rel_path.is_absolute():
                 raise ValueError(f"Main file must be relative: {main_file_rel_path}")
-            if tool_pyretort.get("install_as_package") is False:
+            if standalone:
                 full_main_path = full_source_path / main_file_rel_path
+                # The build copies the source subdirectory, so the file must be in it
+                if not full_main_path.resolve().is_relative_to(
+                    full_source_path.resolve()
+                ):
+                    raise ValueError(
+                        "Main file must be inside the source subdirectory: "
+                        f"{tool_pyretort['main_file']}"
+                    )
                 if not full_main_path.exists():
                     raise ValueError(f"Main file does not exist: {full_main_path}")
                 if not full_main_path.is_file():
@@ -330,26 +389,7 @@ class BuildConfig(BaseModel):
             if not full_icon_path.is_file():
                 raise ValueError(f"Icon path is not a file: {full_icon_path}")
 
-        # Validate build backend: any PEP 517 backend works with 'uv pip install',
-        # but an empty value would make uv fall back to legacy setuptools
-        build_backend = build_system.get("build-backend")
-        if not isinstance(build_backend, str) or not build_backend.strip():
-            raise ValueError(
-                "'build-backend' in [build-system] must be a non-empty string"
-            )
-
         # Validate boolean fields
-        install_as_package = tool_pyretort.get("install_as_package")
-        if install_as_package is not None and not isinstance(install_as_package, bool):
-            raise ValueError(
-                f"'install_as_package' must be a boolean, got {type(install_as_package).__name__}"
-            )
-        if install_as_package is False:
-            raise ValueError(
-                "install_as_package = false (standalone mode) is not supported yet; "
-                "set it to true or see docs/tasks/12-standalone-mode.md"
-            )
-
         show_console_window = tool_pyretort.get("show_console_window")
         if show_console_window is not None and not isinstance(
             show_console_window, bool
@@ -364,18 +404,35 @@ class BuildConfig(BaseModel):
                 f"'create_dist_zip_file' must be a boolean, got {type(create_dist_zip_file).__name__}"
             )
 
-        # Validate the entry point: the launcher runs 'python -m <module>'
-        entry_point = launcher_entry_point(project_dir, source_subdir, project["name"])
-        if not entry_point.exists():
-            raise ValueError(
-                f"Package mode requires '{entry_point.dunder_main}': the launcher "
-                f"runs 'python -m {entry_point.module}'. Point project_source_subdir "
-                "at the package directory or add __main__.py."
+        if standalone:
+            # 'uv pip install -r pyproject.toml' reads the static dependency
+            # list; a list the backend would compute is silently empty
+            if "dependencies" in project.get("dynamic", []):
+                raise ValueError(
+                    "Standalone mode installs [project].dependencies; "
+                    "'dependencies' in [project].dynamic is not supported"
+                )
+            # With '-r' uv does not compare requires-python with the
+            # interpreter, so the mismatch would surface only at run time
+            if "requires-python" in project:
+                _check_requires_python(project["requires-python"], python_version)
+
+        # Validate the entry point: in package mode the launcher runs
+        # 'python -m <module>', in standalone mode it runs main_file as a script
+        if not standalone:
+            entry_point = launcher_entry_point(
+                project_dir, source_subdir, project["name"]
             )
+            if not entry_point.exists():
+                raise ValueError(
+                    f"Package mode requires '{entry_point.dunder_main}': the "
+                    f"launcher runs 'python -m {entry_point.module}'. Point "
+                    "project_source_subdir at the package directory or add "
+                    "__main__.py."
+                )
 
         # Extract configuration; absent optional booleans keep the model defaults
         config_data = {
-            "build_hash": build_hash,
             "project_dir_abs_path": project_dir,
             "project_name": project.get("name"),
             "project_version": project.get("version"),

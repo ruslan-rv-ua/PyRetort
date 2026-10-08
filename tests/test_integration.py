@@ -9,7 +9,6 @@ import pytest
 import tomli_w
 from typer.testing import CliRunner
 
-from pyretort.builder.cache_manager import CacheManager
 from pyretort.builder.downloader import Downloader
 from pyretort.builder.pydist_manager import PydistManager
 from pyretort.cli import app
@@ -58,31 +57,6 @@ class TestBuildConfigIntegration:
         assert config.project_name_slug_underscore == "integration_test_app"
         assert config.python_version_short == "313"
         assert config.dist_name == "integration-test-app-1.2.3-amd64"
-        assert len(config.build_hash) == 64
-
-
-class TestCacheDownloaderIntegration:
-    """Integration tests for CacheManager and Downloader."""
-
-    def test_cache_with_downloader(self, tmp_path: Path) -> None:
-        """Test that cache and downloader work together."""
-        cache_path = tmp_path / "cache"
-        download_path = tmp_path / "downloads"
-        download_path.mkdir()
-
-        cache = CacheManager(cache_path)
-        Downloader(download_path)
-
-        test_file = download_path / "test.txt"
-        test_file.write_text("test content")
-
-        assert "test.txt" not in cache
-
-        (cache_path / "test.txt").write_text("cached")
-        assert "test.txt" in cache
-
-        cache.cleanup()
-        assert "test.txt" not in cache
 
 
 class TestCLIWorkflow:
@@ -154,13 +128,13 @@ class TestPydistManagerIntegration:
 
         manager._verify_embedded_python()
 
-        manager.patch_pth_file("3.13.0", "src/myapp")
+        manager.patch_pth_file("3.13.0", extra_paths=["app"])
 
         pth_file = pydist_path / "python313._pth"
         assert pth_file.exists()
         content = pth_file.read_text()
         assert "python313.zip" in content
-        assert "src/myapp" in content
+        assert "app" in content.splitlines()
 
 
 @pytest.mark.slow

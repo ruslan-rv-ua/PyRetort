@@ -20,7 +20,8 @@ def fake_pydist_manager(pydist_path: Path, downloader: Downloader) -> MagicMock:
     """Stand in for PydistManager: same python.exe location, no download.
 
     Installing the embedded Python leaves an empty python.exe stub, so the
-    build directory has the layout of a real build.
+    build directory has the layout of a real build. patch_pth_file is the
+    real one, so a test can read the ._pth file the build wrote.
     """
     manager = MagicMock(spec=PydistManager)
     manager.python_executable = pydist_path / "python.exe"
@@ -30,6 +31,9 @@ def fake_pydist_manager(pydist_path: Path, downloader: Downloader) -> MagicMock:
         manager.python_executable.write_bytes(b"")
 
     manager.install_embedded_python.side_effect = install_embedded_python
+    manager.patch_pth_file.side_effect = PydistManager(
+        pydist_path, downloader
+    ).patch_pth_file
     return manager
 
 
@@ -84,7 +88,6 @@ def generate_exe() -> Iterator[MagicMock]:
 def sample_build_config() -> BuildConfig:
     """Create a sample BuildConfig for testing."""
     return BuildConfig(
-        build_hash="abc123def456",
         project_dir_abs_path=Path("c:/test/project"),
         project_name="test-project",
         project_version="1.0.0",
@@ -192,12 +195,6 @@ def download_dir(tmp_path: Path) -> Path:
     dl_dir = tmp_path / "downloads"
     dl_dir.mkdir()
     return dl_dir
-
-
-@pytest.fixture
-def cache_dir(tmp_path: Path) -> Path:
-    """Create a temporary cache directory path (not created yet)."""
-    return tmp_path / "cache"
 
 
 @pytest.fixture

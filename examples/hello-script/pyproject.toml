@@ -1,25 +1,24 @@
 [project]
-name = "hello-cli"
+name = "hello-script"
 version = "0.1.0"
-description = "Minimal console application packaged with PyRetort"
+description = "Minimal console script packaged with PyRetort in standalone mode"
 readme = "README.md"
 authors = [
     { name = "Ruslan Iskov", email = "ruslan.rv.ua+github@gmail.com" }
 ]
 requires-python = ">=3.13"
-dependencies = []
-
-[build-system]
-requires = ["uv_build>=0.12.23,<0.13.0"]
-build-backend = "uv_build"
+dependencies = ["rich>=15.0.0"]
 
 [tool.pyretort]
 # Path to the project source directory relative to the project root
-# The launcher runs 'python -m <last path component>' (the project name slug when ".")
-project_source_subdir = "src/hello_cli"
+# In standalone mode its contents are copied into the application
+project_source_subdir = "."
+# Name of the main Python file to execute (e.g., main.py, app.py)
+# Used only when install_as_package = false; ignored otherwise
+main_file = "main.py"
 # Whether to install the project as a Python package during build
 # true: install the project as a package and run python -m <module>; false: copy sources and run main_file as a script
-install_as_package = true
+install_as_package = false
 # Python version to use for the bundled distribution
 python_version = "3.13.16"
 # Python architecture to use (amd64, win32, arm64)
