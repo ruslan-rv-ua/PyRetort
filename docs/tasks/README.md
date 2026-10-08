@@ -53,7 +53,7 @@ uv run mypy src launcher
 | 09 | [09-readme-and-metadata.md](09-readme-and-metadata.md) | README, CHANGELOG, метадані пакета, подяка gen-exe | 06, 14, 15 | DONE |
 | 10 | [10-examples.md](10-examples.md) | Приклади: прибрати застарілі, додати hello-cli | 04 | DONE |
 | 11 | [11-release-0.1.0.md](11-release-0.1.0.md) | Реліз 0.1.0: тег, публікація на PyPI, перевірка встановлення | 07, 08, 09, 10, 13, 14, 15, 16, 17, 18, 20 | DONE |
-| 12 | [12-standalone-mode.md](12-standalone-mode.md) | Після 0.1: режим без встановлення пакета | 11 | TODO |
+| 12 | [12-standalone-mode.md](12-standalone-mode.md) | Після 0.1: standalone-режим — збірка без встановлення пакета, приклад hello-script | 11 | TODO |
 | 13 | [13-cleanup-errors.md](13-cleanup-errors.md) | `cleanup`: код 1, коли теку не вдалося видалити | 01 | DONE |
 | 14 | [14-optional-config-fields.md](14-optional-config-fields.md) | Необов'язкові поля `[tool.pyretort]`: `main_file` у режимі пакета, типові `install_as_package` і `show_console_window` | 04 | DONE |
 | 15 | [15-launcher-without-cmd.md](15-launcher-without-cmd.md) | Власний лаунчер: без cmd.exe, аргументи дослівно, консоль і GUI, три архітектури | 05 | DONE |
@@ -62,6 +62,8 @@ uv run mypy src launcher
 | 18 | [18-help-markup.md](18-help-markup.md) | `init --help`: назва секції `[tool.pyretort]` зникає з опису `--force` | — | DONE |
 | 19 | [19-unused-build-cache.md](19-unused-build-cache.md) | Прибрати мертвий код кешу збірки: `BuildConfig.build_hash` і `CacheManager` | — | DONE |
 | 20 | [20-trusted-publishing.md](20-trusted-publishing.md) | Публікація на PyPI з GitHub Actions без токенів (trusted publishing), репетиція на TestPyPI | 08, 09 | DONE |
+| 21 | [21-init-detects-standalone.md](21-init-detects-standalone.md) | `init` обирає standalone-режим для скриптів у корені проєкту | 12 | TODO |
+| 22 | [22-system-monitor-example.md](22-system-monitor-example.md) | Приклад SystemMonitor: GUI-застосунок у standalone-режимі | 12 | TODO |
 
 ## Ідеї після 0.1 без специфікації
 
@@ -72,3 +74,5 @@ uv run mypy src launcher
 - Власні шаблони виключень для копіювання джерел у standalone-режимі.
 - Перевірка, що обрана `python_version` існує на python.org, під час `check`.
 - `cleanup --dry-run`: показати теки, які буде видалено, нічого не видаляючи.
+- Перевірка `[project].name` за PEP 508 у `check`. Ім'я з пробілом (`System Monitor`) зараз проходить `check`, а збірка падає вже на кроці uv (`Not a valid package or extra name`) — в обох режимах; див. задачу 12, факт 6.
+- Збірка за `uv.lock`, наприклад через `uv export`. Зараз обидва режими ставлять найновіші сумісні версії залежностей, а не ті, з якими застосунок перевіряли.
