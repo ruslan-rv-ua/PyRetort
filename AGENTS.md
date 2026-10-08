@@ -96,7 +96,7 @@ Use pytest for writing and running unit tests in this Python project. Ensure all
   ```
   uv run pytest -m e2e
   ```
-  `tests/test_e2e_build.py` збирає крихітний проєкт справжнім `pyretort build` і запускає згенерований exe. Потрібні `uv` у PATH та інтернет: збірка завантажує embedded Python з python.org, а uv — бекенд `uv_build`. Щоб не завантажувати архів Python щоразу, вкажи у `PYRETORT_E2E_DOWNLOAD_DIR` теку, де вже лежить `python-3.13.9-embed-amd64.zip`, наприклад `downloads/` будь-якого раніше зібраного проєкту:
+  `tests/test_e2e_build.py` збирає крихітний проєкт справжнім `pyretort build` і запускає згенерований exe. Потрібні `uv` у PATH та інтернет: збірка завантажує embedded Python з python.org, а uv — бекенд `uv_build`. Щоб не завантажувати архів Python щоразу, вкажи у `PYRETORT_E2E_DOWNLOAD_DIR` теку, де вже лежить архів тієї версії, яку очікує тест (`EMBEDDED_PYTHON_ZIP` у `tests/test_e2e_build.py`), наприклад `downloads/` проєкту, зібраного з такою ж `python_version`:
   ```
   $env:PYRETORT_E2E_DOWNLOAD_DIR = "examples\Simple RSS\downloads"
   uv run pytest -m e2e
