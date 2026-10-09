@@ -593,3 +593,54 @@ class TestInitCommandBuildMode:
             in content
         )
         assert "python -m <last path component>" not in content
+
+
+class TestInitCommandRequiresPython:
+    """Tests for the warning about a python_version outside requires-python."""
+
+    @pytest.mark.parametrize(
+        ("layout", "install_as_package"),
+        [
+            (["main.py"], False),
+            (["src/my_app/__init__.py", "src/my_app/__main__.py"], True),
+        ],
+        ids=["standalone", "package"],
+    )
+    def test_init_warns_when_python_version_does_not_satisfy_requires_python(
+        self, tmp_path: Path, layout: list[str], install_as_package: bool
+    ) -> None:
+        """Test that init still writes the section and warns with the message of check.
+
+        No Python that runs PyRetort satisfies '<3.11', so the test does not
+        depend on the Python that runs it.
+        """
+        pyproject = tmp_path / "pyproject.toml"
+        data = {
+            "project": {
+                "name": "my-app",
+                "version": "0.1.0",
+                "requires-python": "<3.11",
+            },
+            "build-system": {
+                "requires": ["hatchling"],
+                "build-backend": "hatchling.build",
+            },
+        }
+        pyproject.write_bytes(tomli_w.dumps(data).encode())
+        for file_name in layout:
+            file_path = tmp_path / file_name
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            file_path.write_text("")
+
+        result = runner.invoke(app, ["init", "-p", str(pyproject)])
+
+        assert result.exit_code == 0, result.output
+        content = pyproject.read_text(encoding="utf-8")
+        pyretort_config = tomllib.loads(content)["tool"]["pyretort"]
+        assert pyretort_config["install_as_package"] is install_as_package
+        python_version = pyretort_config["python_version"]
+        assert (
+            f"warning: python_version {python_version} does not satisfy "
+            "requires-python '<3.11' in [project]; "
+            "set python_version to a release that satisfies it"
+        ) in result.stdout.splitlines()
