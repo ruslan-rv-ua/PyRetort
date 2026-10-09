@@ -644,3 +644,31 @@ class TestInitCommandRequiresPython:
             "requires-python '<3.11' in [project]; "
             "set python_version to a release that satisfies it"
         ) in result.stdout.splitlines()
+
+    def test_init_warns_about_invalid_requires_python(self, tmp_path: Path) -> None:
+        """Test that a requires-python that is no specifier gives a warning, not a traceback."""
+        pyproject = tmp_path / "pyproject.toml"
+        data = {
+            "project": {
+                "name": "my-app",
+                "version": "0.1.0",
+                "requires-python": "3.13 or later",
+            },
+            "build-system": {
+                "requires": ["hatchling"],
+                "build-backend": "hatchling.build",
+            },
+        }
+        pyproject.write_bytes(tomli_w.dumps(data).encode())
+        (tmp_path / "main.py").write_text("print('hello')")
+
+        result = runner.invoke(app, ["init", "-p", str(pyproject)])
+
+        assert result.exit_code == 0, result.output
+        updated_data = tomllib.loads(pyproject.read_text(encoding="utf-8"))
+        assert "pyretort" in updated_data["tool"]
+        assert (
+            "warning: Invalid requires-python in [project]: '3.13 or later'"
+            in result.stdout.splitlines()
+        )
+        assert "Traceback" not in result.output
