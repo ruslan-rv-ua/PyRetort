@@ -1,6 +1,6 @@
 [project]
 name = "pyretort"
-version = "0.2.0"
+version = "0.2.1"
 description = "Package Python projects into standalone Windows applications with an embedded Python"
 readme = "README.md"
 license = "MIT"

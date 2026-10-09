@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-09
+
 ### Fixed
 
 - `pyretort check` accepted a `[project]` name or version that uv rejects,
@@ -76,6 +78,7 @@ First public release.
 - Two examples: hello-cli, a console program, and Simple RSS, a wxPython
   application.
 
-[unreleased]: https://github.com/ruslan-rv-ua/PyRetort/compare/v0.2.0...develop
+[unreleased]: https://github.com/ruslan-rv-ua/PyRetort/compare/v0.2.1...develop
+[0.2.1]: https://github.com/ruslan-rv-ua/PyRetort/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/ruslan-rv-ua/PyRetort/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/ruslan-rv-ua/PyRetort/releases/tag/v0.1.0
