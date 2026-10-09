@@ -62,7 +62,7 @@ uv run mypy src launcher
 |---|------|------|--------------|--------|
 | 23 | [23-prune-done-tasks.md](23-prune-done-tasks.md) | Після релізу 0.2.0: прибрати виконані задачі з беклогу, рішення з них — у `docs/decisions.md` | v0.2.0 | DONE |
 | 25 | [25-check-project-name-version.md](25-check-project-name-version.md) | `check` і `build` відхиляють `[project].name` і `version`, які відкидає uv, ще до збірки | — | DONE |
-| 26 | [26-init-warns-requires-python.md](26-init-warns-requires-python.md) | `init` попереджає, коли записана `python_version` не задовольняє `requires-python` | — | TODO |
+| 26 | [26-init-warns-requires-python.md](26-init-warns-requires-python.md) | `init` попереджає, коли записана `python_version` не задовольняє `requires-python` | — | DONE |
 
 ## Ідеї
 

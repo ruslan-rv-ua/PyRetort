@@ -183,7 +183,7 @@ create_dist_zip_file = true
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `project_source_subdir` | string | yes | — | Folder of the package, relative to the project root, for example `"src/hello"`. Its last component is the module the launcher runs with `python -m`. `"."` means that the sources lie in the project root: the module is then the project name in lowercase with underscores, as a `<module>/__main__.py` package or a `<module>.py` file. In [standalone mode](#standalone-mode) it is the folder whose contents are copied into the application; `"."` copies the project root without the excluded files. |
-| `python_version` | string | yes | — | Version of the embedded Python, 3.11 or later, for example `"3.13.9"`. python.org must have a Windows embeddable package for it; security-only releases have none. `init` writes the version of the Python that runs PyRetort. |
+| `python_version` | string | yes | — | Version of the embedded Python, 3.11 or later, for example `"3.13.9"`. python.org must have a Windows embeddable package for it; security-only releases have none. `init` writes the version of the Python that runs PyRetort and warns when it does not satisfy `requires-python`. |
 | `python_architecture` | string | yes | — | `"amd64"`, `"win32"` or `"arm64"`: the architecture of the embedded Python and of the launcher. The build runs the embedded Python, so an `arm64` build needs Windows on ARM. `init` writes `amd64` for a 64-bit Python and `win32` for a 32-bit one. |
 | `create_dist_zip_file` | boolean | yes | — | Also pack the application folder into `dist/<name>-<version>-<architecture>.zip`. `init` writes `true`. |
 | `show_console_window` | boolean | no | `false` | `true` for console programs: the launcher runs in a console window and shares it with the program. `false` for GUI applications: no console window appears. |
@@ -309,6 +309,16 @@ console window.
 - `Invalid version in [project]: '…'. …` → uv accepts only a
   [PEP 440](https://packaging.python.org/en/latest/specifications/version-specifiers/)
   version, such as `1.0.0` or `1.0b1`.
+- `python_version … does not satisfy requires-python '…' in [project]; set python_version to a release that satisfies it`
+  → `init` writes the version of the Python that runs PyRetort, and
+  `uv tool install` and `uvx` choose that Python without looking at the
+  project. Set `python_version` to a release that satisfies `requires-python`
+  and has a Windows embeddable package:
+  [Python Releases for Windows](https://www.python.org/downloads/windows/)
+  links the package of every release that has one. For `init` to write a
+  suitable version in your next projects, move PyRetort to their Python, for
+  example `uv tool upgrade --python 3.14 pyretort`; with `uvx`, pass the
+  Python on every run: `uvx --python 3.14 pyretort init`.
 - `uv was not found in PATH. Install uv: https://docs.astral.sh/uv/getting-started/installation/`
   → install uv, then open a new terminal.
 - `Could not prepare the build directory …: [WinError 5] Access is denied: …`
@@ -322,6 +332,11 @@ console window.
   connection and run the build again. Behind a proxy, set the `HTTPS_PROXY`
   and `HTTP_PROXY` environment variables: PyRetort downloads through httpx,
   which reads them.
+- `uv pip install failed with exit code 1: … the current Python version (…) does not satisfy Python>=…`
+  → `python_version` is lower than `requires-python` allows. In package mode
+  `check` leaves this comparison to uv, which ignores upper bounds such as
+  `<3.13`, so the build stops only at this step. Set `python_version` as for
+  the `does not satisfy requires-python` message above.
 - `uv pip install failed with exit code 2: … (os error 216)` → this computer
   cannot run the embedded Python of the chosen architecture: build `arm64` on
   Windows on ARM.
