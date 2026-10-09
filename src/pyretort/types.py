@@ -106,7 +106,7 @@ def _check_project_name_and_version(project: dict[str, Any]) -> None:
         ) from None
 
 
-def _check_requires_python(requires_python: object, python_version: object) -> None:
+def check_requires_python(requires_python: object, python_version: object) -> None:
     """Raise ValueError unless python_version satisfies [project].requires-python.
 
     A python_version that is no version at all is left to the model validator.
@@ -455,7 +455,7 @@ class BuildConfig(BaseModel):
             # With '-r' uv does not compare requires-python with the
             # interpreter, so the mismatch would surface only at run time
             if "requires-python" in project:
-                _check_requires_python(project["requires-python"], python_version)
+                check_requires_python(project["requires-python"], python_version)
 
         # Validate the entry point: in package mode the launcher runs
         # 'python -m <module>', in standalone mode it runs main_file as a script
