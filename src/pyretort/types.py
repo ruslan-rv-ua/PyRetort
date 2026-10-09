@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
+from packaging.utils import InvalidName, canonicalize_name
 from packaging.version import InvalidVersion, Version
 from pydantic import BaseModel, computed_field, field_validator, model_validator
 from slugify import slugify
@@ -66,6 +67,43 @@ def launcher_entry_point(
         project_dir / module / "__main__.py",
         single_module=project_dir / f"{module}.py",
     )
+
+
+def _check_project_name_and_version(project: dict[str, Any]) -> None:
+    """Raise ValueError unless uv accepts [project].name and version.
+
+    uv checks them only when it installs the project, after the build has
+    removed the previous build and downloaded the embedded Python.
+    """
+    for field in ("name", "version"):
+        value = project[field]
+        if not isinstance(value, str):
+            raise ValueError(
+                f"'{field}' in [project] must be a string, got {type(value).__name__}"
+            )
+
+    name = project["name"]
+    try:
+        canonicalize_name(name, validate=True)
+    except InvalidName:
+        # PyRetort names the exe and the folders after this slug, so the
+        # suggested name builds the same files
+        slug = slugify(name, separator="-")
+        hint = f"; try '{slug}'" if slug else ""
+        raise ValueError(
+            f"Invalid name in [project]: '{name}'. A name may contain only ASCII "
+            "letters, digits, '-', '_' and '.' and must start and end with a "
+            f"letter or digit{hint}."
+        ) from None
+
+    version = project["version"]
+    try:
+        Version(version)
+    except InvalidVersion:
+        raise ValueError(
+            f"Invalid version in [project]: '{version}'. "
+            "Use a PEP 440 version such as '1.0.0' or '1.0b1'."
+        ) from None
 
 
 def _check_requires_python(requires_python: object, python_version: object) -> None:
@@ -296,6 +334,8 @@ class BuildConfig(BaseModel):
 
         if "version" not in project:
             raise ValueError("Missing 'version' field in [project] section")
+
+        _check_project_name_and_version(project)
 
         # Validate [tool.pyretort] section
         tool_pyretort = data.get("tool", {}).get("pyretort")

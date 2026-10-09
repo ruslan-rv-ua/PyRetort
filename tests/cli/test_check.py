@@ -9,6 +9,7 @@ import tomli_w
 from typer.testing import CliRunner
 
 from pyretort.cli import app
+from tests.conftest import write_standalone_pyproject
 
 runner = CliRunner()
 
@@ -180,6 +181,19 @@ class TestCheckCommand:
 
         assert result.exit_code == 0, result.output
         assert f"Configuration at {pyproject} is valid." in result.output
+
+    def test_check_rejects_invalid_project_name(self, tmp_path: Path) -> None:
+        """Test that a project name uv rejects fails check, not the build."""
+        pyproject = write_standalone_pyproject(tmp_path, name="System Monitor")
+
+        result = runner.invoke(app, ["check", "-p", str(pyproject)])
+
+        assert result.exit_code == 1
+        assert (
+            "Configuration validation failed: Invalid name in [project]: "
+            "'System Monitor'."
+        ) in result.output
+        assert "is valid" not in result.output
 
 
 class TestCheckCommandEdgeCases:

@@ -12,7 +12,11 @@ from typer.testing import CliRunner
 
 from pyretort.builder.errors import BuildError
 from pyretort.cli import app
-from tests.conftest import BuildExternals, failing_pydist_manager
+from tests.conftest import (
+    BuildExternals,
+    failing_pydist_manager,
+    write_standalone_pyproject,
+)
 
 runner = CliRunner()
 
@@ -109,6 +113,23 @@ class TestBuildCommandOutput:
         assert "python.org has no Windows embeddable package" in result.stderr
         assert "Traceback" not in result.output
         assert "Build complete" not in result.output
+
+    def test_build_rejects_invalid_project_name_before_building(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that a project name uv rejects stops build before it touches disk."""
+        pyproject = write_standalone_pyproject(tmp_path, name="System Monitor")
+
+        result = runner.invoke(app, ["build", "-p", str(pyproject)])
+
+        assert result.exit_code == 1
+        assert (
+            "Invalid configuration: Invalid name in [project]: 'System Monitor'."
+        ) in result.output
+        assert "Traceback" not in result.output
+        assert not (tmp_path / "build").exists()
+        assert not (tmp_path / "downloads").exists()
+        assert not (tmp_path / "dist").exists()
 
 
 class TestBuildCommand:

@@ -9,6 +9,7 @@ from pyretort.types import (
     BuildConfig,
     PythonArchitecture,
 )
+from tests.conftest import write_standalone_pyproject
 
 
 class TestPythonArchitecture:
@@ -1397,3 +1398,112 @@ class TestBuildConfigFromPyprojectToml:
             match="Invalid requires-python in \\[project\\]: '3.13 or later'",
         ):
             BuildConfig.from_pyproject_toml(pyproject_path)
+
+    @pytest.mark.parametrize(
+        ("name", "version", "message"),
+        [
+            (123, "0.1.0", "'name' in [project] must be a string, got int"),
+            ("test-app", 1.0, "'version' in [project] must be a string, got float"),
+        ],
+        ids=["name", "version"],
+    )
+    def test_from_pyproject_rejects_non_string_project_name_and_version(
+        self, tmp_path: Path, name: object, version: object, message: str
+    ) -> None:
+        """Test that a name or version of another TOML type gets a plain message."""
+        pyproject_path = write_standalone_pyproject(tmp_path, name, version)
+
+        with pytest.raises(ValueError) as exc_info:
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+        assert str(exc_info.value) == message
+
+    @pytest.mark.parametrize(
+        ("name", "message"),
+        [
+            (
+                "System Monitor",
+                "Invalid name in [project]: 'System Monitor'. A name may contain "
+                "only ASCII letters, digits, '-', '_' and '.' and must start and "
+                "end with a letter or digit; try 'system-monitor'.",
+            ),
+            (
+                "Монітор",
+                "Invalid name in [project]: 'Монітор'. A name may contain "
+                "only ASCII letters, digits, '-', '_' and '.' and must start and "
+                "end with a letter or digit; try 'monitor'.",
+            ),
+            (
+                "my-app-",
+                "Invalid name in [project]: 'my-app-'. A name may contain "
+                "only ASCII letters, digits, '-', '_' and '.' and must start and "
+                "end with a letter or digit; try 'my-app'.",
+            ),
+            (
+                "!!!",
+                "Invalid name in [project]: '!!!'. A name may contain "
+                "only ASCII letters, digits, '-', '_' and '.' and must start and "
+                "end with a letter or digit.",
+            ),
+        ],
+        ids=["space", "non-ascii", "trailing-dash", "no-slug"],
+    )
+    def test_from_pyproject_rejects_invalid_project_name(
+        self, tmp_path: Path, name: str, message: str
+    ) -> None:
+        """Test that a name uv rejects is reported with the slug as a fix."""
+        pyproject_path = write_standalone_pyproject(tmp_path, name=name)
+
+        with pytest.raises(ValueError) as exc_info:
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+        assert str(exc_info.value) == message
+
+    def test_from_pyproject_accepts_unusual_valid_project_name(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that a valid name is kept as written and slugged for the build."""
+        pyproject_path = write_standalone_pyproject(tmp_path, name="My_App.v2")
+
+        config = BuildConfig.from_pyproject_toml(pyproject_path)
+
+        assert config.project_name == "My_App.v2"
+        assert config.dist_name == "my-app-v2-0.1.0-amd64"
+
+    @pytest.mark.parametrize(
+        ("version", "message"),
+        [
+            (
+                "1.0 beta",
+                "Invalid version in [project]: '1.0 beta'. "
+                "Use a PEP 440 version such as '1.0.0' or '1.0b1'.",
+            ),
+            (
+                "latest",
+                "Invalid version in [project]: 'latest'. "
+                "Use a PEP 440 version such as '1.0.0' or '1.0b1'.",
+            ),
+        ],
+        ids=["space", "no-digits"],
+    )
+    def test_from_pyproject_rejects_invalid_project_version(
+        self, tmp_path: Path, version: str, message: str
+    ) -> None:
+        """Test that a version uv rejects is reported with PEP 440 examples."""
+        pyproject_path = write_standalone_pyproject(tmp_path, version=version)
+
+        with pytest.raises(ValueError) as exc_info:
+            BuildConfig.from_pyproject_toml(pyproject_path)
+
+        assert str(exc_info.value) == message
+
+    def test_from_pyproject_keeps_project_version_as_written(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that a valid version is not normalized: dist_name is built from it."""
+        pyproject_path = write_standalone_pyproject(tmp_path, version="1.0-beta")
+
+        config = BuildConfig.from_pyproject_toml(pyproject_path)
+
+        assert config.project_version == "1.0-beta"
+        assert config.dist_name == "test-app-1.0-beta-amd64"

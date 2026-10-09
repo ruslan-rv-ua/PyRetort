@@ -99,6 +99,30 @@ def sample_build_config() -> BuildConfig:
     )
 
 
+def write_standalone_pyproject(
+    project_dir: Path, name: object = "test-app", version: object = "0.1.0"
+) -> Path:
+    """Write a standalone project with main.py and return its pyproject.toml."""
+    data = {
+        "project": {"name": name, "version": version, "dependencies": []},
+        "tool": {
+            "pyretort": {
+                "project_source_subdir": ".",
+                "main_file": "main.py",
+                "python_version": "3.13.9",
+                "python_architecture": "amd64",
+                "install_as_package": False,
+                "show_console_window": False,
+                "create_dist_zip_file": True,
+            }
+        },
+    }
+    pyproject_path = project_dir / "pyproject.toml"
+    pyproject_path.write_bytes(tomli_w.dumps(data).encode())
+    (project_dir / "main.py").write_text("print('hello')")
+    return pyproject_path
+
+
 @pytest.fixture
 def valid_pyproject_data() -> dict[str, Any]:
     """Return valid pyproject.toml data as dictionary."""
