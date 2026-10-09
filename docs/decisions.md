@@ -18,6 +18,10 @@
 
 `check` і `build` відхиляють конфігурацію режиму пакета, для якої `python -m <модуль>` нічого не знайде: потрібен `__main__.py` у теці `project_source_subdir`, а для `"."` — `<модуль>/__main__.py` або `<модуль>.py`. Без цієї перевірки `check` казав «valid», а помилку було видно лише після збірки. Повідомлення радить спрямувати `project_source_subdir` на теку пакета або додати `__main__.py`. Задача [04].
 
+### Ім'я і версія проєкту — за правилами uv
+
+`check` і `build` в обох режимах відхиляють `[project].name` і `version`, яких не приймає uv: без цього `build` видаляв попередню збірку й падав аж на кроці uv. Ім'я перевіряє `canonicalize_name(…, validate=True)`, версію — `Version` з `packaging`, а перед ними тип значення, бо на не-рядку `canonicalize_name` кидає `TypeError`, і команда впала б із трейсбеком. Для поганого імені повідомлення пропонує slug, за яким PyRetort і так називає exe й теки, тож запропоноване ім'я збирає той самий застосунок. Самі значення лишаються такими, як у `pyproject.toml`: з версії складається `dist_name`, і нормалізація змінила б імена файлів збірки (`1.0-beta` → `1.0b0`). Задача [25].
+
 ### Будь-який PEP 517 build-backend
 
 Режим пакета ставить проєкт через `uv pip install`, якому байдуже, який бекенд оголошено, тож `build-backend` — будь-який непорожній рядок, а поле `build_backend` лише інформаційне. Сам `[build-system]` з `build-backend` обов'язковий: без нього uv збирав би проєкт як legacy setuptools із попередженнями. Standalone-режим проєкт не збирає, тому там `[build-system]` не потрібен і не читається. Задачі [04] і [12].
@@ -37,6 +41,10 @@
 ### `init` обирає режим за розкладкою проєкту
 
 `init` пише `install_as_package = false`, лише коли теки пакета не знайдено (`project_source_subdir = "."`), у корені немає `<модуль>.py` для `python -m`, зате є `main.py`, `app.py`, `cli.py` чи `run.py`: перший за цим порядком стає `main_file`. Простіше правило «немає `__main__.py`, але є `main.py`» відкинуто: `main.py` усередині пакета часто імпортує відносно (`from .database import …`) і як скрипт падає з `ImportError`. Наявність `[build-system]` на вибір не впливає. Задача [21].
+
+### `init` попереджає про `requires-python`
+
+Записавши секцію, `init` звіряє `python_version` з `[project].requires-python` тією ж функцією `check_requires_python`, що й `check`, і за розбіжності друкує її повідомлення з префіксом `warning: `; код виходу — 0. Розбіжність звична: `init` пише версію Python, на якому працює PyRetort, а `uv tool install` і `uvx` обирають цей Python, не дивлячись на проєкт. Попереджає `init` в обох режимах, бо в режимі пакета це єдиний сигнал до збірки: там `check` розбіжність пропускає (див. «Залежності — лише `[project].dependencies`»). Саму версію `init` не змінює: щоб вибрати підхожу, потрібен список релізів із вбудовуваним архівом з python.org (ідея [check-python-version-exists](tasks/ideas.md#check-python-version-exists)). Задача [26].
 
 ### Шляхи — від теки проєкту
 
@@ -76,7 +84,7 @@ Standalone-збірка копіює `project_source_subdir` у `build/<dist_nam
 
 ### Залежності — лише `[project].dependencies`
 
-`uv pip install -r pyproject.toml` ставить у вбудований Python лише `[project].dependencies`: ні сам проєкт, ні групи залежностей; `[build-system]` для цього не потрібен. Тому `check` відхиляє `dependencies` у `[project].dynamic`, з якими uv мовчки нічого б не поставив, і вимагає, щоб `python_version` задовольняла `requires-python`, бо з `-r` uv цього не перевіряє. У режимі пакета розбіжність із `requires-python` виявляє сам uv під час встановлення проєкту. Задача [12].
+`uv pip install -r pyproject.toml` ставить у вбудований Python лише `[project].dependencies`: ні сам проєкт, ні групи залежностей; `[build-system]` для цього не потрібен. Тому `check` відхиляє `dependencies` у `[project].dynamic`, з якими uv мовчки нічого б не поставив, і вимагає, щоб `python_version` задовольняла `requires-python`, бо з `-r` uv цього не перевіряє. У режимі пакета `check` лишає `requires-python` uv, а той під час встановлення проєкту виявляє лише `python_version`, нижчу за `requires-python`, бо верхні межі на кшталт `<3.13` ігнорує. Повна перевірка в `check` відхилила б збірки, які працюють (`>=3.11,<3.13` з 3.13.9), а копія правила uv дублювала б помилку, яку той і так зрозуміло пояснює. Задачі [12] і [26].
 
 ### Тека `main_file` — у `._pth`
 
@@ -192,6 +200,10 @@ README пишеться англійською, бо його читають н�
 
 CHANGELOG ведеться за Keep a Changelog і описує зміни, які помітять користувачі, відносно попереднього релізу. Виправлення помилок, яких не було в жодному релізі, і внутрішній код туди не потрапляють: перший реліз описано лише розділом Added, бо Changed, Fixed і Removed переказували б історію розробки. Помилка з 0.1.0, виправлена в 0.2.0, — у Fixed. Задачі [09], [17], [18], [19] і [24].
 
+### Виконані задачі — у тегах релізів
+
+Після кожного релізу виконані задачі видаляють із `docs/tasks/`, а їхні чинні рішення переносять у цей журнал. Виконана задача — знімок, що з часом розходиться з кодом: задача [04] і після задачі [12] називала standalone-режим непідтримуваним, і пошук по беклогу знаходив цей опис; водночас лише задачі пояснюють, чому код саме такий. Задача лишається в тегу релізу, тож прибирають після `git flow release finish`, бо файл, видалений у гілці релізу, у тег не потрапив би, і лише після релізу, бо тег хотфікса не містить задач із `develop`. Номери прибраних задач не видають знову: на них посилаються коміти й назви гілок. Задача [23].
+
 ### Приклади
 
 `examples/` містить лише проєкти, які збирає поточна версія PyRetort; у кожного є README з інструкцією збірки, а `examples/README.md` перелічує їх із командами `check` і `build`. Збірка ставить найновіші сумісні версії залежностей, а не ті, що в `uv.lock` (ідея [build-from-uv-lock](tasks/ideas.md#build-from-uv-lock)), тому SystemMonitor фіксує свої залежності через `==` на перевірених версіях, а бандл datastar — на тезі релізу замість `@main`. Задачі [10], [12] і [22].
@@ -208,7 +220,7 @@ mypy працює зі `strict = true` і плагіном `pydantic.mypy`, а �
 
 ### Оновлення залежностей
 
-Залежності оновлюють `uv sync --upgrade`; що зламалося, виправляють у коді, а відкат окремого пакета допустимий лише з коментарем-причиною в `pyproject.toml`. Нижні межі dev-групи — мажорні версії, на яких перевірено інструменти; межі runtime-залежностей піднімають, лише коли код починає використовувати новіший API. Задача [03].
+Залежності оновлюють `uv sync --upgrade`; що зламалося, виправляють у коді, а відкат окремого пакета допустимий лише з коментарем-причиною в `pyproject.toml`. Нижні межі dev-групи — мажорні версії, на яких перевірено інструменти; межі runtime-залежностей піднімають, лише коли код починає використовувати новіший API. Тому `packaging` вимагається від 23.2, де з'явився `canonicalize_name(…, validate=True)`, а не від 26.1, з якої правило імені, як і в uv, лише ASCII: з 23.2–26.0 `check` пропускає рідкісні імена з `ı`, `İ`, `ſ` чи знаком Кельвіна, і збірка з ними падає на кроці uv. Задачі [03] і [25].
 
 [01]: https://github.com/ruslan-rv-ua/PyRetort/blob/v0.2.0/docs/tasks/01-cleanup-command.md
 [02]: https://github.com/ruslan-rv-ua/PyRetort/blob/v0.2.0/docs/tasks/02-lint-and-types.md
@@ -232,4 +244,7 @@ mypy працює зі `strict = true` і плагіном `pydantic.mypy`, а �
 [20]: https://github.com/ruslan-rv-ua/PyRetort/blob/v0.2.0/docs/tasks/20-trusted-publishing.md
 [21]: https://github.com/ruslan-rv-ua/PyRetort/blob/v0.2.0/docs/tasks/21-init-detects-standalone.md
 [22]: https://github.com/ruslan-rv-ua/PyRetort/blob/v0.2.0/docs/tasks/22-system-monitor-example.md
+[23]: https://github.com/ruslan-rv-ua/PyRetort/blob/v0.2.1/docs/tasks/23-prune-done-tasks.md
 [24]: https://github.com/ruslan-rv-ua/PyRetort/blob/v0.2.0/docs/tasks/24-keep-stdlib-zip.md
+[25]: https://github.com/ruslan-rv-ua/PyRetort/blob/v0.2.1/docs/tasks/25-check-project-name-version.md
+[26]: https://github.com/ruslan-rv-ua/PyRetort/blob/v0.2.1/docs/tasks/26-init-warns-requires-python.md
