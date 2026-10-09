@@ -124,7 +124,8 @@ def check_requires_python(requires_python: object, python_version: object) -> No
     if not specifier.contains(version, prereleases=True):
         raise ValueError(
             f"python_version {python_version} does not satisfy requires-python "
-            f"'{requires_python}' in [project]"
+            f"'{requires_python}' in [project]; "
+            "set python_version to a release that satisfies it"
         )
 
 

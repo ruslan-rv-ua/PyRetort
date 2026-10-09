@@ -1359,7 +1359,7 @@ class TestBuildConfigFromPyprojectToml:
             ValueError,
             match=(
                 "python_version 3.13.9 does not satisfy requires-python '>=3.14' "
-                "in \\[project\\]"
+                "in \\[project\\]; set python_version to a release that satisfies it"
             ),
         ):
             BuildConfig.from_pyproject_toml(pyproject_path)
