@@ -13,7 +13,11 @@ from tomlkit.items import Table
 from pyretort.cli._options import PyprojectOption, resolve_pyproject
 from pyretort.cli._output import echo
 from pyretort.constants import SHOW_CONSOLE_DEFAULT
-from pyretort.types import PythonArchitecture, launcher_entry_point
+from pyretort.types import (
+    PythonArchitecture,
+    check_requires_python,
+    launcher_entry_point,
+)
 
 
 def init_command(
@@ -42,7 +46,8 @@ def init_command(
         )
         raise typer.Exit(1)
 
-    project_name = str(pyproject_data.get("project", {}).get("name", ""))
+    project = pyproject_data.get("project", {})
+    project_name = str(project.get("name", ""))
     source_subdir = _find_project_source_subdir(project_path, project_name)
     entry_point = launcher_entry_point(project_path, source_subdir, project_name)
     has_entry_point = entry_point.exists()
@@ -52,10 +57,14 @@ def init_command(
     standalone = (
         source_subdir == Path(".") and not has_entry_point and main_file is not None
     )
+    python_version = _find_python_version()
     _set_pyretort_section(
         pyproject_data,
         _build_pyretort_section(
-            source_subdir, main_file, install_as_package=not standalone
+            source_subdir,
+            main_file,
+            install_as_package=not standalone,
+            python_version=python_version,
         ),
     )
     try:
@@ -85,6 +94,15 @@ def init_command(
             "'pyretort build' will fail until it exists",
         )
 
+    # The Python that runs PyRetort may not suit the project: check rejects it
+    # only in standalone mode, and in package mode uv reports a too low
+    # version only during the build
+    if "requires-python" in project:
+        try:
+            check_requires_python(project["requires-python"], python_version)
+        except ValueError as e:
+            echo(ctx, f"warning: {e}")
+
 
 def _has_pyretort_section(pyproject_data: tomlkit.TOMLDocument) -> bool:
     """Return True if the document already has a [tool.pyretort] section."""
@@ -105,7 +123,11 @@ def _set_pyretort_section(
 
 
 def _build_pyretort_section(
-    source_subdir: Path, main_file: str | None, *, install_as_package: bool
+    source_subdir: Path,
+    main_file: str | None,
+    *,
+    install_as_package: bool,
+    python_version: str,
 ) -> Table:
     """Build the commented [tool.pyretort] section for the project."""
 
@@ -160,7 +182,7 @@ def _build_pyretort_section(
     pyretort_config.add(
         tomlkit.comment("Python version to use for the bundled distribution")
     )
-    pyretort_config["python_version"] = _find_python_version()
+    pyretort_config["python_version"] = python_version
 
     pyretort_config.add(
         tomlkit.comment(f"Python architecture to use ({', '.join(PythonArchitecture)})")

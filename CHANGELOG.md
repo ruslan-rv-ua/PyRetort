@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-09
+
+### Fixed
+
+- `pyretort check` accepted a `[project]` name or version that uv rejects,
+  such as `System Monitor` or `1.0 beta`, and `pyretort build` failed at the
+  uv step, after it had already removed the previous build. Both commands now
+  report such a name or version before the build starts.
+- `pyretort init` silently wrote a `python_version` that does not satisfy
+  `requires-python` when PyRetort runs on a Python that the project does not
+  support, for example 3.13.9 for `requires-python = ">=3.14"`.
+  `pyretort check` rejected such a configuration in standalone mode, and in
+  package mode the build failed at the uv step. `init` now warns about it, and
+  the messages of `init` and `check` say what to fix.
+
 ## [0.2.0] - 2026-10-08
 
 ### Added
@@ -63,6 +78,7 @@ First public release.
 - Two examples: hello-cli, a console program, and Simple RSS, a wxPython
   application.
 
-[unreleased]: https://github.com/ruslan-rv-ua/PyRetort/compare/v0.2.0...develop
+[unreleased]: https://github.com/ruslan-rv-ua/PyRetort/compare/v0.2.1...develop
+[0.2.1]: https://github.com/ruslan-rv-ua/PyRetort/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/ruslan-rv-ua/PyRetort/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/ruslan-rv-ua/PyRetort/releases/tag/v0.1.0

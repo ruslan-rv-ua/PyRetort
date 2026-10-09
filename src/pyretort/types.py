@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
+from packaging.utils import InvalidName, canonicalize_name
 from packaging.version import InvalidVersion, Version
 from pydantic import BaseModel, computed_field, field_validator, model_validator
 from slugify import slugify
@@ -68,7 +69,44 @@ def launcher_entry_point(
     )
 
 
-def _check_requires_python(requires_python: object, python_version: object) -> None:
+def _check_project_name_and_version(project: dict[str, Any]) -> None:
+    """Raise ValueError unless uv accepts [project].name and version.
+
+    uv checks them only when it installs the project, after the build has
+    removed the previous build and downloaded the embedded Python.
+    """
+    for field in ("name", "version"):
+        value = project[field]
+        if not isinstance(value, str):
+            raise ValueError(
+                f"'{field}' in [project] must be a string, got {type(value).__name__}"
+            )
+
+    name = project["name"]
+    try:
+        canonicalize_name(name, validate=True)
+    except InvalidName:
+        # PyRetort names the exe and the folders after this slug, so the
+        # suggested name builds the same files
+        slug = slugify(name, separator="-")
+        hint = f"; try '{slug}'" if slug else ""
+        raise ValueError(
+            f"Invalid name in [project]: '{name}'. A name may contain only ASCII "
+            "letters, digits, '-', '_' and '.' and must start and end with a "
+            f"letter or digit{hint}."
+        ) from None
+
+    version = project["version"]
+    try:
+        Version(version)
+    except InvalidVersion:
+        raise ValueError(
+            f"Invalid version in [project]: '{version}'. "
+            "Use a PEP 440 version such as '1.0.0' or '1.0b1'."
+        ) from None
+
+
+def check_requires_python(requires_python: object, python_version: object) -> None:
     """Raise ValueError unless python_version satisfies [project].requires-python.
 
     A python_version that is no version at all is left to the model validator.
@@ -86,7 +124,8 @@ def _check_requires_python(requires_python: object, python_version: object) -> N
     if not specifier.contains(version, prereleases=True):
         raise ValueError(
             f"python_version {python_version} does not satisfy requires-python "
-            f"'{requires_python}' in [project]"
+            f"'{requires_python}' in [project]; "
+            "set python_version to a release that satisfies it"
         )
 
 
@@ -297,6 +336,8 @@ class BuildConfig(BaseModel):
         if "version" not in project:
             raise ValueError("Missing 'version' field in [project] section")
 
+        _check_project_name_and_version(project)
+
         # Validate [tool.pyretort] section
         tool_pyretort = data.get("tool", {}).get("pyretort")
         if not tool_pyretort:
@@ -415,7 +456,7 @@ class BuildConfig(BaseModel):
             # With '-r' uv does not compare requires-python with the
             # interpreter, so the mismatch would surface only at run time
             if "requires-python" in project:
-                _check_requires_python(project["requires-python"], python_version)
+                check_requires_python(project["requires-python"], python_version)
 
         # Validate the entry point: in package mode the launcher runs
         # 'python -m <module>', in standalone mode it runs main_file as a script
