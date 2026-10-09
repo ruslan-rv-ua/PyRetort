@@ -39,7 +39,7 @@
 
 ## check-python-version-exists
 
-Перевірка під час `check`, що для обраної `python_version` на python.org є вбудовуваний архів: у security-релізів його немає, і збірка падає вже на завантаженні. Тим самим списком версій `init` може обирати версію з архівом, що задовольняє `requires-python`, замість лише попереджати про розбіжність, як після [задачі 26](26-init-warns-requires-python.md).
+Перевірка під час `check`, що для обраної `python_version` на python.org є вбудовуваний архів: у security-релізів його немає, і збірка падає вже на завантаженні. Тим самим списком версій `init` може обирати версію з архівом, що задовольняє `requires-python`, замість лише попереджати про розбіжність, як після [задачі 26](https://github.com/ruslan-rv-ua/PyRetort/blob/v0.2.1/docs/tasks/26-init-warns-requires-python.md).
 
 ## cleanup-dry-run
 
