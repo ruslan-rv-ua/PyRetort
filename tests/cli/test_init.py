@@ -627,8 +627,8 @@ class TestInitCommandRequiresPython:
             },
         }
         pyproject.write_bytes(tomli_w.dumps(data).encode())
-        for file_name in layout:
-            file_path = tmp_path / file_name
+        for relative_path in layout:
+            file_path = tmp_path / relative_path
             file_path.parent.mkdir(parents=True, exist_ok=True)
             file_path.write_text("")
 
