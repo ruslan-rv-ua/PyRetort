@@ -12,7 +12,6 @@
 
 | Версія | Тип | Ідеї й задачі | Чому разом |
 |---|---|---|---|
-| 0.2.1 | патч | [задача 25](25-check-project-name-version.md), [задача 26](26-init-warns-requires-python.md) | `check` і `init` пропускають конфігурацію, на якій падає збірка; обидва виправлення — без мережі й нових полів |
 | 0.3.0 | мінорна | [build-from-uv-lock](#build-from-uv-lock), [build-standalone-excludes](#build-standalone-excludes) | Контроль над тим, що потрапляє в застосунок: перевірені версії залежностей з `uv.lock` замість найновіших і власні виключення для джерел |
 | 0.4.0 | мінорна | [init-after-plain-uv-init](#init-after-plain-uv-init), [check-python-version-exists](#check-python-version-exists), [init-finds-icon](#init-finds-icon), [cleanup-dry-run](#cleanup-dry-run) | Менше ручної роботи: проєкт після звичайного `uv init` доходить до збірки без правок, версію Python перевіряють до збірки, іконку знаходить `init`, `cleanup` показує, що видалить |
 | 0.5.0 | мінорна | [build-smaller-dist](#build-smaller-dist) | Спершу дослідження: що можна прибрати без поломок, адже без `*.dist-info` не працює `importlib.metadata` |
